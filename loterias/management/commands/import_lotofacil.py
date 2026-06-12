@@ -13,6 +13,7 @@ class Command(BaseCommand):
         mode = parser.add_mutually_exclusive_group()
         mode.add_argument("--number", type=int, help="Import a specific contest number")
         mode.add_argument("--latest", action="store_true", help="Import the latest contest")
+        mode.add_argument("--sync", action="store_true", help="Import only missing contests since last DB entry")
         mode.add_argument("--xls", action="store_true", help="Download full history XLSX from Caixa")
         mode.add_argument("--xls-file", type=str, dest="xls_file", help="Import from local XLSX file")
         parser.add_argument("--from", type=int, dest="from_number", help="Start of range (use with --to)")
@@ -21,7 +22,14 @@ class Command(BaseCommand):
     def handle(self, *args, **options) -> None:
         service = ImportLotofacilService()
 
-        if options["xls_file"]:
+        if options["sync"]:
+            latest, imported = asyncio.run(service.sync())
+            if imported == 0:
+                self.stdout.write(f"Already up to date at contest #{latest}.")
+            else:
+                self.stdout.write(self.style.SUCCESS(f"Sync complete: {imported} contests imported (up to #{latest})."))
+
+        elif options["xls_file"]:
             path = Path(options["xls_file"])
             if not path.exists():
                 raise CommandError(f"File not found: {path}")

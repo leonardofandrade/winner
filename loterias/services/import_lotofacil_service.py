@@ -45,3 +45,26 @@ class ImportLotofacilService:
             except Exception:
                 logger.exception("Failed to import contest #%s — skipping.", number)
         return results
+
+    async def sync(self) -> tuple[int, int]:
+        """
+        Detecta gap entre banco e API e importa apenas os concursos faltantes.
+        Retorna (latest_number, imported_count).
+        """
+        latest_in_db = await sync_to_async(self._repository.get_latest_number)()
+        raw_latest = await self._client.fetch_contest(None)
+        latest_from_api = int(raw_latest["numero"])
+
+        if latest_in_db is None:
+            # Banco vazio — importa só o mais recente como ponto de partida
+            contest = await self.import_contest(None)
+            logger.info("Empty DB: imported latest contest #%s.", contest.number)
+            return (contest.number, 1)
+
+        if latest_from_api <= latest_in_db:
+            logger.info("Already up to date at contest #%s.", latest_in_db)
+            return (latest_in_db, 0)
+
+        contests = await self.import_range(latest_in_db + 1, latest_from_api)
+        logger.info("Sync complete: imported %s contests (up to #%s).", len(contests), latest_from_api)
+        return (latest_from_api, len(contests))
