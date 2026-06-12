@@ -21,10 +21,10 @@ class GenerateSuggestionsService:
         self._lookback = lookback
         self._repo = ContestRepository()
 
-    def generate(self, count: int = 1) -> list[list[int]]:
-        """Gera `count` jogos sugeridos. Retorna lista de listas de 15 inteiros."""
+    def generate(self, count: int = 1, size: int = _GAME_SIZE) -> list[list[int]]:
+        """Gera `count` jogos com `size` dezenas cada. Retorna lista de listas de inteiros."""
         weights = self._compute_weights()
-        return [self._sample_game(weights) for _ in range(count)]
+        return [self._sample_game(weights, size) for _ in range(count)]
 
     def _compute_weights(self) -> list[float]:
         """Calcula pesos normalizados para cada número 1-25 com base em frequência."""
@@ -41,13 +41,13 @@ class GenerateSuggestionsService:
         total = sum(counter.values())
         return [max(counter.get(n, 0) / total, 0.1 / 25) for n in _ALL_NUMBERS]
 
-    def _sample_game(self, weights: list[float]) -> list[int]:
-        """Amostra 15 números sem reposição usando os pesos calculados."""
+    def _sample_game(self, weights: list[float], size: int = _GAME_SIZE) -> list[int]:
+        """Amostra `size` números sem reposição usando os pesos calculados."""
         remaining = list(range(25))  # índices de _ALL_NUMBERS
         remaining_weights = list(weights)
         chosen: list[int] = []
 
-        for _ in range(_GAME_SIZE):
+        for _ in range(size):
             idx = random.choices(range(len(remaining)), weights=remaining_weights, k=1)[0]
             chosen.append(_ALL_NUMBERS[remaining.pop(idx)])
             remaining_weights.pop(idx)

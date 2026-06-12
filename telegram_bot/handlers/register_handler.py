@@ -14,6 +14,16 @@ ASK_COUNT, ASK_NUMBERS = range(2)
 
 _VALID_COUNTS = set(range(15, 21))  # 15..20
 
+# Preço base: 1 jogo de 15 dezenas = R$ 3,50
+_PRICES = {
+    15: "R$ 3,50",
+    16: "R$ 56,00",
+    17: "R$ 476,00",
+    18: "R$ 2.856,00",
+    19: "R$ 13.566,00",
+    20: "R$ 54.264,00",
+}
+
 
 async def registrar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     tg_user = await sync_to_async(_repo.get_by_telegram_id)(update.effective_user.id)
@@ -50,8 +60,10 @@ async def registrar_count(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return ASK_COUNT
 
     context.user_data["register_count"] = count
+    price = _PRICES[count]
     await update.message.reply_text(
-        f"Ótimo! Agora envie as *{count} dezenas* separadas por espaço:\n"
+        f"Jogo de *{count} dezenas* — {price}.\n\n"
+        f"Envie as {count} dezenas separadas por espaço:\n"
         f"Valores de 1 a 25, sem repetição.\n\n"
         f"Use /cancelar para desistir.",
         parse_mode="Markdown",
