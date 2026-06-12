@@ -2,6 +2,7 @@ from django.conf import settings
 from telegram.ext import Application, CommandHandler, ConversationHandler, MessageHandler, filters
 
 from telegram_bot.handlers import (
+    error_handler,
     help_handler,
     latest_handler,
     mygames_handler,
@@ -47,6 +48,7 @@ def create_application() -> Application:
         fallbacks=[CommandHandler("cancelar", registrar_cancel)],
     ))
 
+    app.add_error_handler(error_handler)
     return app
 
 

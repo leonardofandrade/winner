@@ -2,6 +2,7 @@ from asgiref.sync import sync_to_async
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 
+from telegram_bot.constants import GAME_PRICES, VALID_GAME_SIZES
 from telegram_bot.repositories import TelegramUserRepository
 from telegram_bot.services import RegisterGameService
 from telegram_bot.services.register_game_service import RegisterGameError
@@ -11,18 +12,6 @@ _service = RegisterGameService()
 
 # Estados da conversa
 ASK_COUNT, ASK_NUMBERS = range(2)
-
-_VALID_COUNTS = set(range(15, 21))  # 15..20
-
-# Preço base: 1 jogo de 15 dezenas = R$ 3,50
-_PRICES = {
-    15: "R$ 3,50",
-    16: "R$ 56,00",
-    17: "R$ 476,00",
-    18: "R$ 2.856,00",
-    19: "R$ 13.566,00",
-    20: "R$ 54.264,00",
-}
 
 
 async def registrar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -55,12 +44,12 @@ async def registrar_count(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await update.message.reply_text("Envie apenas o número (ex: `15`). Tente de novo:", parse_mode="Markdown")
         return ASK_COUNT
 
-    if count not in _VALID_COUNTS:
+    if count not in VALID_GAME_SIZES:
         await update.message.reply_text("Escolha entre *15 e 20* dezenas. Tente de novo:", parse_mode="Markdown")
         return ASK_COUNT
 
     context.user_data["register_count"] = count
-    price = _PRICES[count]
+    price = GAME_PRICES[count]
     await update.message.reply_text(
         f"Jogo de *{count} dezenas* — {price}.\n\n"
         f"Envie as {count} dezenas separadas por espaço:\n"
