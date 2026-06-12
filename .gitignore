@@ -1,0 +1,31 @@
+# ambiente
+.venv/
+*.pyc
+__pycache__/
+*.pyo
+
+# Django
+*.log
+db.sqlite3
+media/
+staticfiles/
+
+# ambiente local
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ruff
+.ruff_cache/
+
+# OS
+.DS_Store
+Thumbs.db
