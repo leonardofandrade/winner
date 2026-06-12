@@ -1,5 +1,6 @@
-import pytest
 from datetime import date
+
+import pytest
 
 from core.exceptions import ParseError
 from loterias.parsers import LotofacilParser

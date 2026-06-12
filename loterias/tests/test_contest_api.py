@@ -1,7 +1,7 @@
-import pytest
 from datetime import date
 from decimal import Decimal
 
+import pytest
 from django.urls import reverse
 from rest_framework.test import APIClient
 

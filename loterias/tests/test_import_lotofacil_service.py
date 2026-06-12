@@ -1,10 +1,11 @@
-import pytest
 from datetime import date
 from unittest.mock import AsyncMock, patch
 
+import pytest
+
 from loterias.models import Contest
 from loterias.services import ImportLotofacilService
-from loterias.tests.fixtures import CONTEST_3095_RAW, CONTEST_ACCUMULATED_RAW
+from loterias.tests.fixtures import CONTEST_3095_RAW
 
 
 def _make_contest(number: int = 3095) -> Contest:

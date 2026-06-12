@@ -1,6 +1,7 @@
-import pytest
 from datetime import date
 from unittest.mock import patch
+
+import pytest
 
 from predicoes.services import GenerateSuggestionsService
 

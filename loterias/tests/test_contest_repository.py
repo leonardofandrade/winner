@@ -1,5 +1,6 @@
-import pytest
 from datetime import date
+
+import pytest
 
 from loterias.models import Contest
 from loterias.repositories import ContestRepository

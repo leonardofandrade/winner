@@ -6,13 +6,21 @@ from loterias.repositories import ContestRepository, GameRepository, GameResultR
 
 logger = logging.getLogger(__name__)
 
-# Prêmios fixos por faixa (independem do concurso)
-# 14 e 15 acertos são variáveis — dependem do rateio do concurso e ficam como 0
+# Prêmios fixos por faixa (valores regulamentares da Caixa, usados como fallback)
 _FIXED_PRIZES: dict[int, Decimal] = {
     11: Decimal("6.00"),
     12: Decimal("12.00"),
     13: Decimal("25.00"),
 }
+
+
+def _prize_for_hits(hits: int, contest: Contest) -> Decimal:
+    """Retorna o prêmio para o número de acertos, priorizando prize_tiers do concurso."""
+    tiers = contest.prize_tiers or {}
+    tier_value = tiers.get(str(hits))
+    if tier_value is not None:
+        return Decimal(str(tier_value))
+    return _FIXED_PRIZES.get(hits, Decimal("0"))
 
 
 class ResultCalculationService:
@@ -26,7 +34,7 @@ class ResultCalculationService:
     def calculate(self, game: Game, contest: Contest) -> GameResult:
         """Calcula os acertos de um jogo em um concurso e salva o resultado."""
         hits = len(set(game.numbers) & set(contest.winning_numbers))
-        prize = _FIXED_PRIZES.get(hits, Decimal("0"))
+        prize = _prize_for_hits(hits, contest)
         result = self._result_repo.save(game, contest, hits, prize)
         logger.debug("Game #%s vs Contest #%s: %s hits, prize R$%s", game.pk, contest.number, hits, prize)
         return result

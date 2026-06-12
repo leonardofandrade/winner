@@ -34,6 +34,7 @@ class ContestRepository:
                 winning_numbers=d["winning_numbers"],
                 prize_pool=d["prize_pool"],
                 accumulated=d["accumulated"],
+                prize_tiers=d.get("prize_tiers"),
             )
             for d in items
         ]
@@ -41,6 +42,6 @@ class ContestRepository:
             objects,
             update_conflicts=True,
             unique_fields=["number"],
-            update_fields=["draw_date", "winning_numbers", "prize_pool", "accumulated"],
+            update_fields=["draw_date", "winning_numbers", "prize_pool", "accumulated", "prize_tiers"],
         )
         return len(objects)

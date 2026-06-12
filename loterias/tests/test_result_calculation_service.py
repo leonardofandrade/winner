@@ -1,7 +1,7 @@
-import pytest
 from datetime import date
 from decimal import Decimal
 
+import pytest
 from django.contrib.auth import get_user_model
 
 from loterias.models import Contest, Game, GameResult
@@ -98,11 +98,11 @@ class TestResultCalculationService:
         assert len(results) == 2
 
     def test_calculate_all_for_game(self, user, db, service) -> None:
-        contest1 = Contest.objects.create(
+        Contest.objects.create(
             number=1, draw_date=date(2003, 9, 29),
             winning_numbers=list(range(1, 16)), accumulated=False,
         )
-        contest2 = Contest.objects.create(
+        Contest.objects.create(
             number=2, draw_date=date(2003, 10, 6),
             winning_numbers=list(range(11, 26)), accumulated=False,
         )

@@ -15,6 +15,15 @@ _COL_BOLA_LAST = 16   # Bola15 (inclusive)
 _COL_ACCUMULATED = 28  # Acumulado 15 acertos
 _COL_PRIZE_POOL = 29   # Arrecadacao Total
 
+# Colunas de rateio por faixa de acertos
+_TIER_COLS: dict[int, int] = {
+    15: 19,  # Rateio 15 acertos
+    14: 21,  # Rateio 14 acertos
+    13: 23,  # Rateio 13 acertos
+    12: 25,  # Rateio 12 acertos
+    11: 27,  # Rateio 11 acertos
+}
+
 
 def _parse_brl(value: str | None) -> Decimal | None:
     """Converte 'R$22.711.636,50' para Decimal, ou None se vazio/zero."""
@@ -54,15 +63,27 @@ class LotofacilXlsParser:
             winning_numbers = sorted(
                 int(row[i]) for i in range(_COL_BOLA_FIRST, _COL_BOLA_LAST + 1)
             )
+            prize_tiers = self._parse_prize_tiers(row)
             return ParsedContest(
                 number=int(row[_COL_NUMBER]),
                 draw_date=self._parse_date(row[_COL_DATE]),
                 winning_numbers=winning_numbers,
                 prize_pool=_parse_brl(row[_COL_PRIZE_POOL]),
                 accumulated=_parse_brl(row[_COL_ACCUMULATED]) is not None,
+                prize_tiers=prize_tiers,
             )
         except (TypeError, ValueError) as exc:
             raise ParseError(f"Cannot parse row {row[_COL_NUMBER]}: {exc}") from exc
+
+    def _parse_prize_tiers(self, row: tuple) -> dict | None:
+        """Extrai rateio por faixa como dict {str(hits): str(value)}."""
+        tiers = {}
+        for hits, col in _TIER_COLS.items():
+            if col < len(row):
+                value = _parse_brl(row[col])
+                if value is not None:
+                    tiers[str(hits)] = str(value)
+        return tiers if tiers else None
 
     def _parse_date(self, value) -> date:
         if isinstance(value, date):
