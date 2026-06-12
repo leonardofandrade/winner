@@ -7,6 +7,7 @@ Ele permite:
 - Registrar jogos do usuário
 - Calcular automaticamente acertos e prêmios
 - Gerar sugestões de jogos usando heurísticas e IA
+- Interagir via **Telegram Bot** antes mesmo da UI
 - Expor API REST (Django REST Framework)
 - Evoluir futuramente para UI web ou mobile
 
@@ -18,6 +19,7 @@ O projeto segue arquitetura limpa, com:
 - Tasks
 - Commands
 - API modular
+- Integração com Telegram Bot
 
 Todo o código é escrito em **inglês**, com **comentários em português**.
 
@@ -28,10 +30,9 @@ Todo o código é escrito em **inglês**, com **comentários em português**.
 - Python 3.12+
 - Django 6+
 - Django REST Framework
-- httpx (async client)
+- httpx (async)
+- python-telegram-bot 21+
 - SQLite (inicialmente)
-- Estrutura preparada para Celery (futuro)
-- Estrutura preparada para ML (futuro)
 
 ---
 
@@ -54,6 +55,14 @@ winner/
 │   ├── clients/
 │   ├── parsers/
 │   ├── tasks/
+│   └── management/commands/
+│
+├── telegram_bot/
+│   ├── handlers/
+│   ├── services/
+│   ├── repositories/
+│   ├── clients/
+│   ├── utils/
 │   └── management/commands/
 │
 ├── predicoes/
@@ -81,7 +90,7 @@ Winner segue princípios de:
 - Alta coesão  
 - Testabilidade  
 - Extensibilidade  
-- Separação clara de responsabilidades  
+- Interfaces múltiplas (API, Telegram, UI futura)
 
 ---
 
@@ -91,10 +100,10 @@ Winner segue princípios de:
 - Parsers → testes com arquivos reais  
 - Repositories → testes de integração  
 - API → testes de endpoints  
+- Telegram Bot → testes de handlers e services  
 
 ---
 
 ## 📜 Licença
 
-Projeto privado do Leonardo.  
-Licença a definir.
+Projeto privado do Leonardo.
