@@ -29,3 +29,8 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+
+# dados locais
+*.xlsx
+*.zip
+*.csv
