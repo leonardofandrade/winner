@@ -17,3 +17,23 @@ class ContestRepository:
         """Cria ou atualiza um concurso. Retorna (contest, created)."""
         defaults = {k: v for k, v in data.items() if k != "number"}
         return Contest.objects.update_or_create(number=data["number"], defaults=defaults)
+
+    def bulk_update_or_create(self, items: list[ParsedContest]) -> int:
+        """Insere ou atualiza em lote. Retorna o total processado."""
+        objects = [
+            Contest(
+                number=d["number"],
+                draw_date=d["draw_date"],
+                winning_numbers=d["winning_numbers"],
+                prize_pool=d["prize_pool"],
+                accumulated=d["accumulated"],
+            )
+            for d in items
+        ]
+        Contest.objects.bulk_create(
+            objects,
+            update_conflicts=True,
+            unique_fields=["number"],
+            update_fields=["draw_date", "winning_numbers", "prize_pool", "accumulated"],
+        )
+        return len(objects)
