@@ -1,0 +1,19 @@
+[Unit]
+Description=Winner Telegram Bot
+After=network.target
+
+[Service]
+User=winner
+Group=winner
+WorkingDirectory=/opt/winner
+EnvironmentFile=/opt/winner/.env
+Environment=DJANGO_SETTINGS_MODULE=config.settings.production
+ExecStart=/opt/winner/.venv/bin/python manage.py run_telegram_bot
+Restart=on-failure
+RestartSec=10
+# Aguarda 10s antes de reiniciar para evitar flood em caso de token inválido
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Install]
+WantedBy=multi-user.target

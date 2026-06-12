@@ -1,0 +1,20 @@
+[Unit]
+Description=Winner API (gunicorn)
+After=network.target
+
+[Service]
+User=winner
+Group=winner
+WorkingDirectory=/opt/winner
+EnvironmentFile=/opt/winner/.env
+ExecStart=/opt/winner/.venv/bin/gunicorn config.wsgi:application \
+    --workers 2 \
+    --bind 127.0.0.1:8000 \
+    --timeout 60 \
+    --access-logfile /var/log/winner/api-access.log \
+    --error-logfile /var/log/winner/api-error.log
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

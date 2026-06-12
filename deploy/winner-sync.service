@@ -1,0 +1,13 @@
+[Unit]
+Description=Winner Lotofacil sync (run once)
+
+[Service]
+Type=oneshot
+User=winner
+Group=winner
+WorkingDirectory=/opt/winner
+EnvironmentFile=/opt/winner/.env
+Environment=DJANGO_SETTINGS_MODULE=config.settings.production
+ExecStart=/opt/winner/.venv/bin/python manage.py import_lotofacil --sync
+StandardOutput=journal
+StandardError=journal

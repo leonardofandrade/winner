@@ -1,0 +1,11 @@
+[Unit]
+Description=Winner Lotofacil sync — segunda a sábado às 22h
+
+[Timer]
+# Sorteios da Lotofacil: seg-sex às 20h e sáb às 20h (resultado geralmente por volta das 21h)
+OnCalendar=Mon-Sat 22:00
+# Garante execução mesmo se o PC estava desligado no horário agendado
+Persistent=true
+
+[Install]
+WantedBy=timers.target
