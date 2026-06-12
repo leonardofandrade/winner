@@ -1,5 +1,3 @@
-import asyncio
-
 from django.core.management.base import BaseCommand
 
 from telegram_bot.runner import run
@@ -10,4 +8,4 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options) -> None:
         self.stdout.write("Starting Winner Telegram Bot...")
-        asyncio.run(run())
+        run()

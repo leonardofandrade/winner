@@ -20,6 +20,6 @@ def create_application() -> Application:
     return app
 
 
-async def run() -> None:
-    app = create_application()
-    await app.run_polling()
+def run() -> None:
+    # run_polling() gerencia o event loop internamente no PTB v21+
+    create_application().run_polling()
