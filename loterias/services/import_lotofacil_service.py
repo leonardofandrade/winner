@@ -49,14 +49,16 @@ class ImportLotofacilService:
     async def sync(self) -> tuple[int, int]:
         """
         Detecta gap entre banco e API e importa apenas os concursos faltantes.
+        Após importar, notifica usuários via Telegram.
         Retorna (latest_number, imported_count).
         """
+        from telegram_bot.services import NotifyResultsService  # evita import circular
+
         latest_in_db = await sync_to_async(self._repository.get_latest_number)()
         raw_latest = await self._client.fetch_contest(None)
         latest_from_api = int(raw_latest["numero"])
 
         if latest_in_db is None:
-            # Banco vazio — importa só o mais recente como ponto de partida
             contest = await self.import_contest(None)
             logger.info("Empty DB: imported latest contest #%s.", contest.number)
             return (contest.number, 1)
@@ -67,4 +69,12 @@ class ImportLotofacilService:
 
         contests = await self.import_range(latest_in_db + 1, latest_from_api)
         logger.info("Sync complete: imported %s contests (up to #%s).", len(contests), latest_from_api)
+
+        notify = NotifyResultsService()
+        for contest in contests:
+            try:
+                await notify.notify_contest(contest)
+            except Exception:
+                logger.exception("Failed to notify for contest #%s.", contest.number)
+
         return (latest_from_api, len(contests))
