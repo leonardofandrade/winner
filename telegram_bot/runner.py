@@ -5,6 +5,7 @@ from telegram_bot.handlers import (
     help_handler,
     latest_handler,
     mygames_handler,
+    register_handler,
     start_handler,
     suggest_handler,
 )
@@ -16,6 +17,7 @@ def create_application() -> Application:
     app.add_handler(CommandHandler("latest", latest_handler))
     app.add_handler(CommandHandler("suggest", suggest_handler))
     app.add_handler(CommandHandler("mygames", mygames_handler))
+    app.add_handler(CommandHandler("registrar", register_handler))
     app.add_handler(CommandHandler("help", help_handler))
     return app
 

@@ -9,8 +9,10 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "/latest — Resultado do último concurso\n"
         "/suggest — Sugestões de jogos por frequência\n"
         "/mygames — Seus jogos cadastrados\n"
+        "/registrar — Cadastrar um jogo\n"
         "/help — Esta mensagem\n\n"
-        "Para registrar um jogo, envie os números separados por espaço:\n"
-        "`1 2 3 4 5 6 7 8 9 10 11 12 13 14 15`",
+        "*Cadastrar um jogo:*\n"
+        "`/registrar 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15`\n"
+        "Entre 15 e 20 dezenas, valores de 1 a 25, sem repetição.",
         parse_mode="Markdown",
     )
