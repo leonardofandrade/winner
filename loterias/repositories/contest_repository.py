@@ -8,6 +8,13 @@ class ContestRepository:
     def get_by_number(self, number: int) -> Contest | None:
         return Contest.objects.filter(number=number).first()
 
+    def get_latest(self) -> Contest | None:
+        return Contest.objects.order_by("-number").first()
+
+    def get_recent(self, n: int) -> list[Contest]:
+        """Retorna os n concursos mais recentes ordenados do mais antigo ao mais novo."""
+        return list(Contest.objects.order_by("-number")[:n])
+
     def get_latest_number(self) -> int | None:
         # Retorna o número do concurso mais recente no banco, ou None se vazio
         contest = Contest.objects.order_by("-number").first()
