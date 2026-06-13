@@ -37,7 +37,7 @@ fi
 # 4. Virtualenv e dependências
 sudo -u "$APP_USER" python3 -m venv "$APP_DIR/.venv"
 sudo -u "$APP_USER" "$APP_DIR/.venv/bin/pip" install --quiet --upgrade pip
-sudo -u "$APP_USER" "$APP_DIR/.venv/bin/pip" install --quiet -r "$APP_DIR/requirements/production.txt"
+sudo -u "$APP_USER" "$APP_DIR/.venv/bin/pip" install --quiet -r "$APP_DIR/requirements.txt"
 
 # 5. .env — cria a partir do exemplo se não existir
 if [ ! -f "$APP_DIR/.env" ]; then
