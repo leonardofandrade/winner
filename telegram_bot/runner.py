@@ -15,6 +15,7 @@ from telegram_bot.handlers import (
     suggest_count,
     suggest_size,
     suggest_start,
+    sync_handler,
 )
 from telegram_bot.handlers.register_handler import ASK_COUNT as REG_ASK_COUNT
 from telegram_bot.handlers.register_handler import ASK_NUMBERS as REG_ASK_NUMBERS
@@ -28,6 +29,7 @@ def create_application() -> Application:
     app.add_handler(CommandHandler("start", start_handler))
     app.add_handler(CommandHandler("latest", latest_handler))
     app.add_handler(CommandHandler("mygames", mygames_handler))
+    app.add_handler(CommandHandler("atualizar", sync_handler))
     app.add_handler(CommandHandler("help", help_handler))
 
     app.add_handler(ConversationHandler(

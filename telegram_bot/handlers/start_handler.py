@@ -22,5 +22,6 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         "/suggest — sugestão de jogo\n"
         "/registrar — cadastrar um jogo\n"
         "/mygames — seus jogos e resultados\n"
+        "/atualizar — importar novos concursos (admin)\n"
         "/help — ajuda"
     )
