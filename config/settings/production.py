@@ -6,7 +6,6 @@ ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")  # noqa: F405
 
 STATIC_ROOT = BASE_DIR / "staticfiles"  # noqa: F405
 
-# Reutiliza conexões de BD — reduz overhead em SQLite
 CONN_MAX_AGE = 60
 
 LOGGING = {

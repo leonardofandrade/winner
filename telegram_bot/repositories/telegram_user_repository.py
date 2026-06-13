@@ -16,4 +16,4 @@ class TelegramUserRepository:
         )
 
     def get_by_telegram_id(self, telegram_id: int) -> TelegramUser | None:
-        return TelegramUser.objects.filter(telegram_id=telegram_id).first()
+        return TelegramUser.objects.select_related("user").filter(telegram_id=telegram_id).first()
