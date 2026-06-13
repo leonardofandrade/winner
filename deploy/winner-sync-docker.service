@@ -1,0 +1,8 @@
+[Unit]
+Description=Winner — importa novos concursos via Docker
+After=winner-docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/winner
+ExecStart=/usr/bin/docker compose exec -T bot python manage.py import_lotofacil --sync

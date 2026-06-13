@@ -1,0 +1,9 @@
+[Unit]
+Description=Winner — sync diário de concursos (Docker)
+
+[Timer]
+OnCalendar=Mon-Sat 22:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
