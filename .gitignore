@@ -12,6 +12,7 @@ staticfiles/
 
 # ambiente local
 .env
+.env.dev
 
 # IDE
 .vscode/
