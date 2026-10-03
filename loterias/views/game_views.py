@@ -1,4 +1,5 @@
 from rest_framework import generics, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -6,7 +7,8 @@ from rest_framework.views import APIView
 
 from loterias.repositories import GameRepository, GameResultRepository
 from loterias.serializers import GameResultSerializer, GameSerializer
-from loterias.services import ResultCalculationService
+from loterias.services import GameSetService, ResultCalculationService
+from loterias.services.game_set_service import GameSetError
 
 _game_repo = GameRepository()
 _result_repo = GameResultRepository()
@@ -20,7 +22,14 @@ class GameListCreateView(generics.ListCreateAPIView):
         return _game_repo.get_by_user(self.request.user)
 
     def perform_create(self, serializer) -> None:
-        serializer.save(user=self.request.user)
+        raw_name = self.request.data.get("set_name") or ""
+        game_set = None
+        if str(raw_name).strip():
+            try:
+                game_set = GameSetService().open(self.request.user, str(raw_name))
+            except GameSetError as exc:
+                raise ValidationError({"set_name": [str(exc)]}) from exc
+        serializer.save(user=self.request.user, game_set=game_set)
 
 
 class GameDetailView(generics.RetrieveDestroyAPIView):

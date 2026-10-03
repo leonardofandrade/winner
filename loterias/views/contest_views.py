@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.exceptions import ClientError
 from loterias.models import Contest
 from loterias.repositories import ContestRepository, GameResultRepository
 from loterias.serializers import ContestSerializer, GameResultSerializer
@@ -35,7 +36,10 @@ class ContestImportView(APIView):
     def post(self, request: Request) -> Response:
         number = request.data.get("number")
         service = ImportLotofacilService()
-        contest = asyncio.run(service.import_contest(number))
+        try:
+            contest = asyncio.run(service.import_contest(number))
+        except ClientError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
         return Response(ContestSerializer(contest).data, status=status.HTTP_200_OK)
 
 

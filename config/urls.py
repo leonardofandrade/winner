@@ -18,7 +18,12 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
+from core.views import FrontendView
+
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("api/auth/", include("core.urls")),
+    path("api/suggestions/", include("predicoes.urls")),
     path("api/", include("loterias.urls")),
+    path("", FrontendView.as_view(), name="frontend"),
 ]

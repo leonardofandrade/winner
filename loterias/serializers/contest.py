@@ -13,6 +13,7 @@ class ContestSerializer(serializers.ModelSerializer):
             "winning_numbers",
             "prize_pool",
             "accumulated",
+            "prize_tiers",
             "created_at",
             "updated_at",
         ]

@@ -1,0 +1,33 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10241a">
+  <title>Winner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,680&family=Outfit:wght@380;520;650&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'frontend/app.css' %}?v=3">
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <a class="brand" href="#/concursos">
+        <span class="mark" aria-hidden="true"></span>
+        <span>Winner</span>
+      </a>
+      <nav class="nav" aria-label="Seções">
+        <a href="#/concursos" data-nav="concursos">Concursos</a>
+        <a href="#/jogos" data-nav="jogos">Jogos</a>
+        <a href="#/sugestoes" data-nav="sugestoes">Sugestões</a>
+      </nav>
+      <div class="session" id="session"></div>
+    </header>
+    <main id="main"></main>
+  </div>
+  <p id="toast" class="toast" hidden></p>
+  <script type="module" src="{% static 'frontend/app.js' %}?v=3"></script>
+</body>
+</html>
