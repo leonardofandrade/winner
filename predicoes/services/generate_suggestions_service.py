@@ -6,6 +6,7 @@ from loterias.repositories import ContestRepository
 _ALL_NUMBERS = list(range(1, 26))
 _GAME_SIZE = 15
 _DEFAULT_LOOKBACK = 100
+_MAX_DRAW_RETRIES = 30
 
 
 class GenerateSuggestionsService:
@@ -15,6 +16,7 @@ class GenerateSuggestionsService:
     Conta quantas vezes cada dezena (1-25) saiu nos últimos N concursos e
     amostra 15 números com probabilidade proporcional à frequência.
     Números mais frequentes têm maior chance de aparecer na sugestão.
+    Um jogo de 15 dezenas que já saiu em algum concurso é descartado e sorteado de novo.
     """
 
     def __init__(self, lookback: int = _DEFAULT_LOOKBACK) -> None:
@@ -24,7 +26,16 @@ class GenerateSuggestionsService:
     def generate(self, count: int = 1, size: int = _GAME_SIZE) -> list[list[int]]:
         """Gera `count` jogos com `size` dezenas cada. Retorna lista de listas de inteiros."""
         weights = self._compute_weights()
-        return [self._sample_game(weights, size) for _ in range(count)]
+        drawn = self._repo.drawn_combinations() if size == _GAME_SIZE else set()
+        return [self._sample_fresh(weights, size, drawn) for _ in range(count)]
+
+    def _sample_fresh(self, weights: list[float], size: int, drawn: set[tuple[int, ...]]) -> list[int]:
+        """Sorteia um jogo. Com 15 dezenas, repete o sorteio se a combinação já saiu."""
+        for _ in range(_MAX_DRAW_RETRIES):
+            game = self._sample_game(weights, size)
+            if tuple(game) not in drawn:
+                return game
+        raise RuntimeError("não foi possível gerar um jogo que ainda não tenha saído")
 
     def _compute_weights(self) -> list[float]:
         """Calcula pesos normalizados para cada número 1-25 com base em frequência."""

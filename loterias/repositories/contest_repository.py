@@ -17,6 +17,13 @@ class ContestRepository:
         """Retorna os n concursos mais recentes ordenados do mais antigo ao mais novo."""
         return list(Contest.objects.order_by("-number")[:n])
 
+    def drawn_combinations(self) -> set[tuple[int, ...]]:
+        """Combinações de 15 dezenas que já saíram em algum concurso."""
+        return {
+            tuple(sorted(numbers))
+            for numbers in Contest.objects.values_list("winning_numbers", flat=True)
+        }
+
     def get_latest_number(self) -> int | None:
         # Retorna o número do concurso mais recente no banco, ou None se vazio
         contest = Contest.objects.order_by("-number").first()
