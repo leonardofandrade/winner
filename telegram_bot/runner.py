@@ -1,5 +1,16 @@
+from asgiref.sync import sync_to_async
 from django.conf import settings
-from telegram.ext import Application, CommandHandler, ConversationHandler, MessageHandler, filters
+from django.db import close_old_connections
+from telegram import Update
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    ContextTypes,
+    ConversationHandler,
+    MessageHandler,
+    TypeHandler,
+    filters,
+)
 
 from telegram_bot.handlers import (
     error_handler,
@@ -23,9 +34,19 @@ from telegram_bot.handlers.suggest_handler import ASK_COUNT as SUG_ASK_COUNT
 from telegram_bot.handlers.suggest_handler import ASK_SIZE as SUG_ASK_SIZE
 
 
+async def _release_stale_db_connections(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+) -> None:
+    # Roda na mesma thread do sync_to_async. Descarta conexão acima de CONN_MAX_AGE
+    # e marca o health check para o próximo acesso ao banco.
+    await sync_to_async(close_old_connections)()
+
+
 def create_application() -> Application:
     app = Application.builder().token(settings.TELEGRAM_BOT_TOKEN).build()
 
+    app.add_handler(TypeHandler(Update, _release_stale_db_connections), group=-1)
     app.add_handler(CommandHandler("start", start_handler))
     app.add_handler(CommandHandler("latest", latest_handler))
     app.add_handler(CommandHandler("mygames", mygames_handler))
