@@ -1,5 +1,6 @@
 from core.exceptions import WinnerException
-from loterias.models import Game
+from loterias.models import Game, GameSet
+from loterias.repositories import GameRepository
 from telegram_bot.models import TelegramUser
 
 
@@ -15,13 +16,16 @@ class RegisterGameService:
     _MIN_VALUE = 1
     _MAX_VALUE = 25
 
-    def execute(self, telegram_user: TelegramUser, text: str) -> Game:
+    def __init__(self) -> None:
+        self._games = GameRepository()
+
+    def execute(self, telegram_user: TelegramUser, text: str, game_set: GameSet | None = None) -> Game:
         if telegram_user.user is None:
             raise RegisterGameError("Você precisa vincular sua conta Winner primeiro. Use /vincular.")
 
         numbers = self._parse_numbers(text)
         self._validate(numbers)
-        return Game.objects.create(user=telegram_user.user, numbers=numbers)
+        return self._games.create(telegram_user.user, numbers, game_set=game_set)
 
     def _parse_numbers(self, text: str) -> list[int]:
         try:

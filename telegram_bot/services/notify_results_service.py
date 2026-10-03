@@ -66,13 +66,19 @@ class NotifyResultsService:
         total_prize = Decimal("0")
         for game, result in pairs:
             emoji = _HIT_EMOJI.get(result.hits, "")
+            label = f"Jogo #{game.pk}"
+            if game.game_set_id:
+                safe_name = "".join(
+                    f"\\{ch}" if ch in "\\_*`[" else ch for ch in game.game_set.name
+                )
+                label += f" ({safe_name})"
             if result.hits >= _MIN_PRIZE_HITS:
                 lines.append(
-                    f"{emoji} Jogo #{game.pk}: *{result.hits} acertos* — {_fmt_brl(result.prize)}"
+                    f"{emoji} {label}: *{result.hits} acertos* — {_fmt_brl(result.prize)}"
                 )
                 total_prize += result.prize
             else:
-                lines.append(f"Jogo #{game.pk}: {result.hits} acertos")
+                lines.append(f"{label}: {result.hits} acertos")
 
         if total_prize > 0:
             lines.append(f"\n💰 *Total: {_fmt_brl(total_prize)}*")

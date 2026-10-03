@@ -9,10 +9,17 @@ _MAX_VALUE = 25
 
 
 class GameSerializer(serializers.ModelSerializer):
+    set_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Game
-        fields = ["id", "user", "numbers", "created_at", "updated_at"]
-        read_only_fields = ["user", "created_at", "updated_at"]
+        fields = ["id", "user", "numbers", "set_name", "created_at", "updated_at"]
+        read_only_fields = ["user", "set_name", "created_at", "updated_at"]
+
+    def get_set_name(self, obj: Game) -> str | None:
+        if obj.game_set_id is None:
+            return None
+        return obj.game_set.name
 
     def validate_numbers(self, value: list) -> list:
         if not isinstance(value, list) or not all(isinstance(n, int) for n in value):

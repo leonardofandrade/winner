@@ -70,6 +70,17 @@ class TestRegisterGameService:
         game = RegisterGameService().execute(telegram_user, text)
         assert game.pk is not None
         assert game.numbers == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        assert game.game_set_id is None
+
+    def test_registers_game_inside_named_set(self, telegram_user) -> None:
+        from loterias.services import GameSetService
+
+        game_set = GameSetService().open(telegram_user.user, "bolão da firma")
+        text = "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15"
+        game = RegisterGameService().execute(telegram_user, text, game_set=game_set)
+        assert game.game_set_id == game_set.pk
+        again = GameSetService().open(telegram_user.user, "Bolão da firma")
+        assert again.pk == game_set.pk
 
     def test_raises_when_not_linked(self, telegram_user_no_link) -> None:
         with pytest.raises(RegisterGameError, match="vincular"):

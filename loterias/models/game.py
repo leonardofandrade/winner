@@ -10,6 +10,13 @@ class Game(models.Model):
     )
     # Lista de 15 a 20 números escolhidos pelo usuário (1-25)
     numbers = models.JSONField()
+    game_set = models.ForeignKey(
+        "loterias.GameSet",
+        on_delete=models.CASCADE,
+        related_name="games",
+        null=True,
+        blank=True,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

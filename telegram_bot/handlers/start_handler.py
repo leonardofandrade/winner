@@ -20,7 +20,7 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         "Comandos disponíveis:\n"
         "/latest — último concurso\n"
         "/suggest — sugestão de jogo\n"
-        "/registrar — cadastrar um jogo\n"
+        "/registrar — cadastrar um conjunto de jogos\n"
         "/mygames — seus jogos e resultados\n"
         "/atualizar — importar novos concursos (admin)\n"
         "/help — ajuda"

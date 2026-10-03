@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from loterias.models import Contest, Game, GameResult
+from loterias.models import Contest, Game, GameResult, GameSet
 
 
 @admin.register(Contest)
@@ -11,10 +11,17 @@ class ContestAdmin(admin.ModelAdmin):
     ordering = ["-number"]
 
 
+@admin.register(GameSet)
+class GameSetAdmin(admin.ModelAdmin):
+    list_display = ["id", "name", "user", "created_at"]
+    search_fields = ["name", "user__username"]
+    ordering = ["-created_at"]
+
+
 @admin.register(Game)
 class GameAdmin(admin.ModelAdmin):
-    list_display = ["id", "user", "created_at"]
-    search_fields = ["user__username"]
+    list_display = ["id", "user", "game_set", "created_at"]
+    search_fields = ["user__username", "game_set__name"]
     ordering = ["-created_at"]
 
 
