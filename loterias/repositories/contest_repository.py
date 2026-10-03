@@ -1,3 +1,5 @@
+from django.db import connection
+
 from loterias.models import Contest
 from loterias.parsers import ParsedContest
 
@@ -38,10 +40,19 @@ class ContestRepository:
             )
             for d in items
         ]
-        Contest.objects.bulk_create(
-            objects,
-            update_conflicts=True,
-            unique_fields=["number"],
-            update_fields=["draw_date", "winning_numbers", "prize_pool", "accumulated", "prize_tiers"],
-        )
+        # MySQL faz o upsert por qualquer chave única e rejeita unique_fields.
+        # SQLite e PostgreSQL exigem unique_fields para saber qual conflito atualizar.
+        upsert = {
+            "update_conflicts": True,
+            "update_fields": [
+                "draw_date",
+                "winning_numbers",
+                "prize_pool",
+                "accumulated",
+                "prize_tiers",
+            ],
+        }
+        if connection.features.supports_update_conflicts_with_target:
+            upsert["unique_fields"] = ["number"]
+        Contest.objects.bulk_create(objects, **upsert)
         return len(objects)

@@ -54,3 +54,13 @@ class TestContestRepository:
         repository.update_or_create(sample_parsed)
         repository.update_or_create({**sample_parsed, "number": 3096})
         assert repository.get_latest_number() == 3096
+
+    def test_bulk_update_or_create_inserts_and_updates(self, repository, sample_parsed) -> None:
+        repository.update_or_create(sample_parsed)
+        newer = {**sample_parsed, "number": 3096, "accumulated": True}
+        updated = {**sample_parsed, "accumulated": True}
+        total = repository.bulk_update_or_create([updated, newer])
+        assert total == 2
+        assert Contest.objects.count() == 2
+        assert Contest.objects.get(number=3095).accumulated is True
+        assert Contest.objects.get(number=3096).accumulated is True
