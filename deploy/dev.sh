@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Sobe o Winner em desenvolvimento no Docker Desktop, a partir do WSL.
 # Uso:
-#   deploy/dev.sh up              API em http://localhost:8080 e MySQL em localhost:3307
+#   deploy/dev.sh up              API em http://localhost:8081 e MySQL em localhost:3307
 #   deploy/dev.sh up --with-bot   inclui o bot (exige TELEGRAM_BOT_TOKEN em .env.dev)
 #   deploy/dev.sh down|ps|logs
 set -euo pipefail
@@ -14,7 +14,7 @@ usage() {
   cat <<'EOF'
 Uso: deploy/dev.sh <up|down|ps|logs> [opções]
 
-  up              sobe MySQL e API com o código montado e reload
+  up              sobe MySQL e API com o código montado e reload (API em :8081)
   up --with-bot   também sobe o Telegram bot
   down            para o ambiente de dev e mantém o volume do banco
   ps              mostra os containers deste ambiente
@@ -42,7 +42,7 @@ cmd_up() {
 
   require_docker
   ensure_env
-  require_port_free 8080 winner-dev "A API de dev usa 8080. A 8200 permanece com o Extractor."
+  require_port_free 8081 winner-dev "A API de dev usa 8081. A 8080 fica livre para agentes do Windows; a 8200 permanece com o Extractor."
   require_port_free 3307 winner-dev "O MySQL de dev usa 3307. A 3306 permanece com o Extractor."
 
   local profiles=()
@@ -57,14 +57,14 @@ cmd_up() {
     die "o ambiente de dev não ficou saudável"
   fi
 
-  wait_http "http://127.0.0.1:8080/api/contests/"
-  wait_http "http://127.0.0.1:8080/admin/login/"
+  wait_http "http://127.0.0.1:8081/api/contests/"
+  wait_http "http://127.0.0.1:8081/admin/login/"
   "${COMPOSE[@]}" --profile bot ps
   cat <<'EOF'
 
 Dev no ar.
-  API:    http://localhost:8080/api/contests/
-  Admin:  http://localhost:8080/admin/
+  API:    http://localhost:8081/api/contests/
+  Admin:  http://localhost:8081/admin/
   MySQL:  127.0.0.1:3307  (usuário winner, banco winner)
   Código montado em /app: o runserver recarrega ao salvar.
 

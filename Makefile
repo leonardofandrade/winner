@@ -3,7 +3,7 @@
 .PHONY: help dev-up dev-bot dev-down dev-ps dev-logs prod-up prod-down prod-ps prod-logs
 
 help:
-	@echo "Dev (http://localhost:8080, MySQL em localhost:3307)"
+	@echo "Dev (http://localhost:8081, MySQL em localhost:3307)"
 	@echo "  make dev-up      sobe API e MySQL, com reload do código"
 	@echo "  make dev-bot     sobe o dev e o Telegram bot"
 	@echo "  make dev-down    para o dev e mantém o banco"
