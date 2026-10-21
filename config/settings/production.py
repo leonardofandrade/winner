@@ -21,4 +21,8 @@ LOGGING = {
         "console": {"class": "logging.StreamHandler", "formatter": "default"},
     },
     "root": {"handlers": ["console"], "level": "INFO"},
+    "loggers": {
+        # O httpx loga a URL de cada request, e a URL da API do Telegram contém o token do bot
+        "httpx": {"level": "WARNING"},
+    },
 }
