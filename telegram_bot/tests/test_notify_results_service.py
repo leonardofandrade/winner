@@ -1,13 +1,18 @@
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
+from asgiref.sync import sync_to_async
 from django.contrib.auth import get_user_model
 
 from loterias.models import Contest, Game, GameResult
 from telegram_bot.models import TelegramUser
-from telegram_bot.services.notify_results_service import NotifyResultsService, _fmt_brl
+from telegram_bot.services.notify_results_service import (
+    NotifyResultsService,
+    _fmt_brl,
+    _split_message,
+)
 
 User = get_user_model()
 
@@ -30,9 +35,16 @@ def contest(db):
     )
 
 
+def _make_game(user, created_at: datetime) -> Game:
+    game = Game.objects.create(user=user, numbers=list(range(1, 16)))
+    # auto_now_add ignora o valor passado no create; ajusta depois
+    Game.objects.filter(pk=game.pk).update(created_at=created_at)
+    return game
+
+
 @pytest.fixture
 def game(db, user):
-    return Game.objects.create(user=user, numbers=list(range(1, 16)))
+    return _make_game(user, datetime(2026, 6, 1, tzinfo=UTC))
 
 
 class TestFmtBrl:
@@ -70,27 +82,70 @@ class TestNotifyResultsService:
         assert "01" in msg
         assert "15" in msg
 
-    @pytest.mark.asyncio
-    @pytest.mark.django_db(transaction=True)
-    async def test_notify_contest_skips_users_without_games(self, tg_user, contest) -> None:
-        service = NotifyResultsService()
-        with patch("telegram_bot.services.notify_results_service.Bot") as MockBot:
-            mock_bot = AsyncMock()
-            MockBot.return_value.__aenter__ = AsyncMock(return_value=mock_bot)
-            MockBot.return_value.__aexit__ = AsyncMock(return_value=False)
-            await service.notify_contest(contest)
-            mock_bot.send_message.assert_not_called()
 
-    @pytest.mark.asyncio
-    @pytest.mark.django_db(transaction=True)
-    async def test_notify_contest_sends_message(self, tg_user, contest, game) -> None:
+
+class TestSplitMessage:
+    def test_short_text_is_single_chunk(self) -> None:
+        assert _split_message("a\nb") == ["a\nb"]
+
+    def test_long_text_splits_on_lines(self) -> None:
+        text = "\n".join("x" * 100 for _ in range(100))
+        chunks = _split_message(text, limit=1000)
+        assert all(len(c) <= 1000 for c in chunks)
+        assert "\n".join(chunks) == text
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+class TestNotifyPending:
+    async def test_first_run_sends_latest_and_marks_notified(self, tg_user, contest, game) -> None:
+        bot = AsyncMock()
+        sent = await NotifyResultsService().notify_pending(bot)
+        assert sent == 1
+        kwargs = bot.send_message.call_args.kwargs
+        assert kwargs["chat_id"] == tg_user.telegram_id
+        assert "3709" in kwargs["text"]
+        await tg_user.arefresh_from_db()
+        assert tg_user.last_notified_contest == 3709
+
+    async def test_does_not_resend_notified_contest(self, tg_user, contest, game) -> None:
+        bot = AsyncMock()
         service = NotifyResultsService()
-        with patch("telegram_bot.services.notify_results_service.Bot") as MockBot:
-            mock_bot = AsyncMock()
-            MockBot.return_value.__aenter__ = AsyncMock(return_value=mock_bot)
-            MockBot.return_value.__aexit__ = AsyncMock(return_value=False)
-            await service.notify_contest(contest)
-            mock_bot.send_message.assert_called_once()
-            call_kwargs = mock_bot.send_message.call_args.kwargs
-            assert call_kwargs["chat_id"] == tg_user.telegram_id
-            assert "3709" in call_kwargs["text"]
+        await service.notify_pending(bot)
+        sent = await service.notify_pending(bot)
+        assert sent == 0
+        bot.send_message.assert_called_once()
+
+    async def test_catches_up_missed_contests_in_order(self, tg_user, contest, game) -> None:
+        await Contest.objects.acreate(
+            number=3708, draw_date=date(2026, 6, 15),
+            winning_numbers=list(range(1, 16)), accumulated=False,
+        )
+        tg_user.last_notified_contest = 3707
+        await tg_user.asave()
+        bot = AsyncMock()
+        sent = await NotifyResultsService().notify_pending(bot)
+        assert sent == 2
+        texts = [c.kwargs["text"] for c in bot.send_message.call_args_list]
+        assert "3708" in texts[0] and "3709" in texts[1]
+
+    async def test_skips_users_without_games_but_marks_notified(self, tg_user, contest) -> None:
+        bot = AsyncMock()
+        sent = await NotifyResultsService().notify_pending(bot)
+        assert sent == 0
+        bot.send_message.assert_not_called()
+        await tg_user.arefresh_from_db()
+        assert tg_user.last_notified_contest == 3709
+
+    async def test_ignores_games_registered_after_draw(self, tg_user, user, contest) -> None:
+        await sync_to_async(_make_game)(user, datetime(2026, 6, 20, tzinfo=UTC))
+        bot = AsyncMock()
+        sent = await NotifyResultsService().notify_pending(bot)
+        assert sent == 0
+
+    async def test_send_failure_keeps_contest_pending(self, tg_user, contest, game) -> None:
+        bot = AsyncMock()
+        bot.send_message.side_effect = RuntimeError("telegram down")
+        await NotifyResultsService().notify_pending(bot)
+        await tg_user.arefresh_from_db()
+        assert tg_user.last_notified_contest is None

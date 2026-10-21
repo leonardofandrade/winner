@@ -1,9 +1,10 @@
 [Unit]
-Description=Winner Lotofacil sync — segunda a sábado às 22h
+Description=Winner Lotofacil sync — todos os dias às 22h
 
 [Timer]
-# Sorteios da Lotofacil: seg-sex às 20h e sáb às 20h (resultado geralmente por volta das 21h)
-OnCalendar=Mon-Sat 22:00
+# Sorteios da Lotofacil: seg-sáb às 20h e dom às 11h. O envio dos prêmios
+# fica com o job do bot às 3h, que também sincroniza; este timer só adianta a base.
+OnCalendar=*-*-* 22:00
 # Garante execução mesmo se o PC estava desligado no horário agendado
 Persistent=true
 

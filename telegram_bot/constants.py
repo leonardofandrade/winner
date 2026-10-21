@@ -1,5 +1,8 @@
 """Constantes compartilhadas do bot."""
 
+from datetime import time
+from zoneinfo import ZoneInfo
+
 # Preços oficiais da Lotofácil por quantidade de dezenas (base: 15 = R$ 3,50)
 # Fórmula: C(N,15) * R$ 3,50
 GAME_PRICES: dict[int, str] = {
@@ -12,3 +15,6 @@ GAME_PRICES: dict[int, str] = {
 }
 
 VALID_GAME_SIZES: set[int] = set(GAME_PRICES.keys())
+
+# Horário do relatório diário de prêmios (horário de Brasília)
+DAILY_REPORT_TIME = time(3, 0, tzinfo=ZoneInfo("America/Sao_Paulo"))

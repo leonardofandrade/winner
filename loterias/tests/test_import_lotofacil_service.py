@@ -86,3 +86,38 @@ class TestImportLotofacilService:
             # Primeiro falhou, segundo passou
             assert len(result) == 1
             assert result[0] is contest
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+class TestImportLotofacilSync:
+    async def test_sync_fills_gaps_and_refreshes_latest(self, service) -> None:
+        for n in (3093, 3095):
+            await Contest.objects.acreate(
+                number=n, draw_date=date(2026, 6, 10),
+                winning_numbers=list(range(1, 16)), accumulated=False,
+            )
+        latest_raw = {**CONTEST_3095_RAW, "numero": 3096}
+
+        async def fake_fetch(number=None):
+            return latest_raw if number is None else {**CONTEST_3095_RAW, "numero": number}
+
+        with patch.object(service._client, "fetch_contest", side_effect=fake_fetch) as fetch:
+            latest, imported = await service.sync()
+
+        assert (latest, imported) == (3096, 2)
+        # 3094 era uma lacuna; 3096 vem da própria consulta do mais recente
+        assert [c.args for c in fetch.call_args_list] == [(None,), (3094,)]
+        assert await Contest.objects.filter(number__in=[3094, 3096]).acount() == 2
+
+    async def test_sync_up_to_date_still_refreshes_prize_tiers(self, service) -> None:
+        await Contest.objects.acreate(
+            number=3095, draw_date=date(2026, 6, 11),
+            winning_numbers=list(range(1, 16)), accumulated=False, prize_tiers=None,
+        )
+        with patch.object(service._client, "fetch_contest", new=AsyncMock(return_value=CONTEST_3095_RAW)):
+            latest, imported = await service.sync()
+
+        assert (latest, imported) == (3095, 0)
+        contest = await Contest.objects.aget(number=3095)
+        assert contest.prize_tiers == {"15": "1250000.0", "14": "1500.0"}

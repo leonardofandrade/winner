@@ -64,3 +64,26 @@ class TestContestRepository:
         assert Contest.objects.count() == 2
         assert Contest.objects.get(number=3095).accumulated is True
         assert Contest.objects.get(number=3096).accumulated is True
+
+
+def _create(number: int) -> Contest:
+    return Contest.objects.create(
+        number=number, draw_date=date(2026, 6, 11),
+        winning_numbers=list(range(1, 16)), accumulated=False,
+    )
+
+
+@pytest.mark.django_db
+class TestContestRepositoryGaps:
+    def test_get_missing_numbers_finds_gaps_and_new(self, repository) -> None:
+        for n in (100, 101, 103):
+            _create(n)
+        assert repository.get_missing_numbers(105) == [102, 104, 105]
+
+    def test_get_missing_numbers_empty_db(self, repository) -> None:
+        assert repository.get_missing_numbers(10) == []
+
+    def test_get_after_returns_most_recent_ascending(self, repository) -> None:
+        for n in range(1, 11):
+            _create(n)
+        assert [c.number for c in repository.get_after(5, limit=3)] == [8, 9, 10]

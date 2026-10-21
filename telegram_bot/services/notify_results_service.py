@@ -2,18 +2,22 @@ import logging
 from decimal import Decimal
 
 from asgiref.sync import sync_to_async
-from django.conf import settings
 from telegram import Bot
 
 from loterias.models import Contest, Game, GameResult
-from loterias.repositories import GameRepository
+from loterias.repositories import ContestRepository, GameRepository
 from loterias.services import ResultCalculationService
 from telegram_bot.models import TelegramUser
+from telegram_bot.repositories import TelegramUserRepository
 
 logger = logging.getLogger(__name__)
 
 _HIT_EMOJI = {15: "🏆", 14: "🥇", 13: "🎉", 12: "👍", 11: "✅"}
 _MIN_PRIZE_HITS = 11
+# Após muitos dias sem rodar, envia só os concursos mais recentes para não inundar o chat
+_MAX_CATCH_UP = 7
+# Limite de caracteres por mensagem imposto pelo Telegram
+_MESSAGE_LIMIT = 4096
 
 
 def _fmt_brl(value: Decimal) -> str:
@@ -22,38 +26,76 @@ def _fmt_brl(value: Decimal) -> str:
     return "R$ " + formatted.replace(",", "X").replace(".", ",").replace("X", ".")
 
 
+def _split_message(text: str, limit: int = _MESSAGE_LIMIT) -> list[str]:
+    """Quebra o texto em partes de até limit caracteres, sem cortar linhas."""
+    chunks: list[str] = []
+    current = ""
+    for line in text.split("\n"):
+        candidate = f"{current}\n{line}" if current else line
+        if len(candidate) > limit and current:
+            chunks.append(current)
+            current = line
+        else:
+            current = candidate
+    if current:
+        chunks.append(current)
+    return chunks
+
+
 class NotifyResultsService:
-    """Calcula resultados de um concurso e envia notificações via Telegram."""
+    """Calcula resultados dos concursos pendentes e envia notificações via Telegram."""
 
     def __init__(self) -> None:
         self._game_repo = GameRepository()
+        self._contest_repo = ContestRepository()
+        self._tg_repo = TelegramUserRepository()
         self._calc = ResultCalculationService()
 
-    async def notify_contest(self, contest: Contest) -> None:
-        """Notifica todos os usuários vinculados sobre os resultados do concurso."""
-        tg_users = await sync_to_async(list)(
-            TelegramUser.objects.select_related("user").filter(user__isnull=False)
+    async def notify_pending(self, bot: Bot) -> int:
+        """Envia a cada usuário vinculado os concursos ainda não notificados. Retorna o total enviado."""
+        tg_users = await sync_to_async(self._tg_repo.get_linked)()
+        sent = 0
+        for tg_user in tg_users:
+            try:
+                sent += await self._notify_user(bot, tg_user)
+            except Exception:
+                # Não marca como notificado: o próximo envio tenta de novo
+                logger.exception("Failed to notify telegram_id=%s.", tg_user.telegram_id)
+        return sent
+
+    async def _notify_user(self, bot: Bot, tg_user: TelegramUser) -> int:
+        contests = await sync_to_async(self._pending_contests)(tg_user)
+        sent = 0
+        for contest in contests:
+            if await self._notify_contest(bot, tg_user, contest):
+                sent += 1
+            await sync_to_async(self._tg_repo.set_last_notified)(tg_user, contest.number)
+        return sent
+
+    def _pending_contests(self, tg_user: TelegramUser) -> list[Contest]:
+        # Primeiro envio do usuário: só o concurso mais recente
+        if tg_user.last_notified_contest is None:
+            latest = self._contest_repo.get_latest()
+            return [latest] if latest else []
+        return self._contest_repo.get_after(tg_user.last_notified_contest, _MAX_CATCH_UP)
+
+    async def _notify_contest(self, bot: Bot, tg_user: TelegramUser, contest: Contest) -> bool:
+        """Envia o resultado de um concurso. Retorna False se o usuário não tinha jogos nele."""
+        games = await sync_to_async(list)(
+            self._game_repo.get_by_user_until(tg_user.user, contest.draw_date)
         )
-        if not tg_users:
-            return
-
-        async with Bot(token=settings.TELEGRAM_BOT_TOKEN) as bot:
-            for tg_user in tg_users:
-                await self._notify_user(bot, tg_user, contest)
-
-    async def _notify_user(self, bot: Bot, tg_user: TelegramUser, contest: Contest) -> None:
-        games = await sync_to_async(list)(self._game_repo.get_by_user(tg_user.user))
         if not games:
-            return
+            return False
 
         pairs: list[tuple[Game, GameResult]] = []
         for game in games:
             result = await sync_to_async(self._calc.calculate)(game, contest)
             pairs.append((game, result))
 
-        text = self._build_message(contest, pairs)
-        await bot.send_message(chat_id=tg_user.telegram_id, text=text, parse_mode="Markdown")
+        for chunk in _split_message(self._build_message(contest, pairs)):
+            await bot.send_message(chat_id=tg_user.telegram_id, text=chunk, parse_mode="Markdown")
         logger.info("Contest #%s — notified telegram_id=%s", contest.number, tg_user.telegram_id)
+        return True
 
     def _build_message(self, contest: Contest, pairs: list[tuple[Game, GameResult]]) -> str:
         date_str = contest.draw_date.strftime("%d/%m/%Y")

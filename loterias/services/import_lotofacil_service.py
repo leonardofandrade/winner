@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Iterable
 
 from asgiref.sync import sync_to_async
 
@@ -22,6 +23,9 @@ class ImportLotofacilService:
     async def import_contest(self, number: int | None = None) -> Contest:
         """Importa um concurso pelo número, ou o mais recente se number for None."""
         raw = await self._client.fetch_contest(number)
+        return await self._save_raw(raw)
+
+    async def _save_raw(self, raw: dict) -> Contest:
         parsed = self._parser.parse(raw)
         contest, created = await sync_to_async(self._repository.update_or_create)(parsed)
         action = "created" if created else "updated"
@@ -37,8 +41,11 @@ class ImportLotofacilService:
 
     async def import_range(self, start: int, end: int) -> list[Contest]:
         """Importa concursos de start até end (inclusive), ignorando falhas individuais."""
+        return await self._import_numbers(range(start, end + 1))
+
+    async def _import_numbers(self, numbers: Iterable[int]) -> list[Contest]:
         results: list[Contest] = []
-        for number in range(start, end + 1):
+        for number in numbers:
             try:
                 contest = await self.import_contest(number)
                 results.append(contest)
@@ -48,33 +55,27 @@ class ImportLotofacilService:
 
     async def sync(self) -> tuple[int, int]:
         """
-        Detecta gap entre banco e API e importa apenas os concursos faltantes.
-        Após importar, notifica usuários via Telegram.
+        Importa os concursos ausentes no banco, inclusive lacunas de falhas anteriores,
+        e regrava o mais recente para pegar o rateio publicado depois do sorteio.
         Retorna (latest_number, imported_count).
         """
-        from telegram_bot.services import NotifyResultsService  # evita import circular
-
         latest_in_db = await sync_to_async(self._repository.get_latest_number)()
         raw_latest = await self._client.fetch_contest(None)
         latest_from_api = int(raw_latest["numero"])
 
         if latest_in_db is None:
-            contest = await self.import_contest(None)
+            contest = await self._save_raw(raw_latest)
             logger.info("Empty DB: imported latest contest #%s.", contest.number)
             return (contest.number, 1)
 
-        if latest_from_api <= latest_in_db:
-            logger.info("Already up to date at contest #%s.", latest_in_db)
-            return (latest_in_db, 0)
+        missing = await sync_to_async(self._repository.get_missing_numbers)(latest_from_api)
+        # O mais recente já veio na consulta acima; não precisa buscar de novo
+        contests = await self._import_numbers(n for n in missing if n != latest_from_api)
+        await self._save_raw(raw_latest)
+        imported = len(contests) + (1 if latest_from_api in missing else 0)
 
-        contests = await self.import_range(latest_in_db + 1, latest_from_api)
-        logger.info("Sync complete: imported %s contests (up to #%s).", len(contests), latest_from_api)
-
-        notify = NotifyResultsService()
-        for contest in contests:
-            try:
-                await notify.notify_contest(contest)
-            except Exception:
-                logger.exception("Failed to notify for contest #%s.", contest.number)
-
-        return (latest_from_api, len(contests))
+        if imported == 0:
+            logger.info("Already up to date at contest #%s.", latest_from_api)
+        else:
+            logger.info("Sync complete: imported %s contests (up to #%s).", imported, latest_from_api)
+        return (latest_from_api, imported)

@@ -1,7 +1,8 @@
 Django==6.0.6
 djangorestframework==3.17.1
 django-environ==0.13.0
-python-telegram-bot==22.8
+python-telegram-bot[job-queue]==22.8
+APScheduler==3.11.0
 gunicorn==23.0.0
 httpx==0.28.1
 openpyxl==3.1.5

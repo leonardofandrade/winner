@@ -29,6 +29,19 @@ class ContestRepository:
         contest = Contest.objects.order_by("-number").first()
         return contest.number if contest else None
 
+    def get_after(self, number: int, limit: int) -> list[Contest]:
+        """Até limit concursos posteriores a number, os mais recentes, do mais antigo ao mais novo."""
+        recent = Contest.objects.filter(number__gt=number).order_by("-number")[:limit]
+        return sorted(recent, key=lambda c: c.number)
+
+    def get_missing_numbers(self, up_to: int) -> list[int]:
+        """Números ausentes entre o menor concurso do banco e up_to (inclusive)."""
+        earliest = Contest.objects.order_by("number").values_list("number", flat=True).first()
+        if earliest is None:
+            return []
+        existing = set(Contest.objects.filter(number__gte=earliest).values_list("number", flat=True))
+        return [n for n in range(earliest, up_to + 1) if n not in existing]
+
     def update_or_create(self, data: ParsedContest) -> tuple[Contest, bool]:
         """Cria ou atualiza um concurso. Retorna (contest, created)."""
         defaults = {k: v for k, v in data.items() if k != "number"}

@@ -12,6 +12,7 @@ from telegram.ext import (
     filters,
 )
 
+from telegram_bot.constants import DAILY_REPORT_TIME
 from telegram_bot.handlers import (
     error_handler,
     help_handler,
@@ -35,6 +36,7 @@ from telegram_bot.handlers.register_handler import ASK_NAME as REG_ASK_NAME
 from telegram_bot.handlers.register_handler import ASK_NUMBERS as REG_ASK_NUMBERS
 from telegram_bot.handlers.suggest_handler import ASK_COUNT as SUG_ASK_COUNT
 from telegram_bot.handlers.suggest_handler import ASK_SIZE as SUG_ASK_SIZE
+from telegram_bot.jobs import daily_report_job
 
 
 async def _release_stale_db_connections(
@@ -79,6 +81,7 @@ def create_application() -> Application:
     ))
 
     app.add_error_handler(error_handler)
+    app.job_queue.run_daily(daily_report_job, time=DAILY_REPORT_TIME, name="daily_report")
     return app
 
 

@@ -15,6 +15,8 @@ class TelegramUser(models.Model):
         blank=True,
         related_name="telegram_profile",
     )
+    # Último concurso enviado no relatório diário — evita mensagens repetidas
+    last_notified_contest = models.PositiveIntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
