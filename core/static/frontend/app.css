@@ -186,7 +186,7 @@ h1 { font-size: clamp(2.1rem, 4vw, 3.4rem); line-height: 0.95; }
 
 /* Sem limite, as 5 colunas ocupam o painel inteiro e os círculos ficam enormes */
 .picker {
-  width: min(100%, 240px);
+  width: min(100%, 280px);
   gap: 6px;
 }
 

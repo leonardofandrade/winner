@@ -141,7 +141,7 @@ function picker() {
   const cells = [];
   for (let number = 1; number <= 25; number += 1) {
     const on = state.picked.has(number) ? " on" : "";
-    cells.push(`<button type="button" class="${on.trim()}" data-action="toggle" data-number="${number}" aria-pressed="${state.picked.has(number)}">${number}</button>`);
+    cells.push(`<button type="button" class="${on.trim()}" data-action="toggle" data-number="${number}" aria-pressed="${state.picked.has(number)}">${String(number).padStart(2, "0")}</button>`);
   }
   return `<div class="picker" aria-label="Dezenas de 1 a 25">${cells.join("")}</div>`;
 }
