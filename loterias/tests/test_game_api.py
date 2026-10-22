@@ -105,3 +105,49 @@ class TestGameResultsView:
         game = Game.objects.create(user=other_user, numbers=NUMBERS)
         response = auth_client.get(reverse("game-results", kwargs={"pk": game.pk}))
         assert response.status_code == 404
+
+
+@pytest.mark.django_db
+class TestGameSetDetailView:
+    def test_rename_and_add_game_to_existing_set(self, auth_client, user) -> None:
+        created = auth_client.post(
+            reverse("game-list"), {"numbers": NUMBERS, "set_name": "firma"}, format="json"
+        )
+        set_id = created.data["set_id"]
+        response = auth_client.patch(
+            reverse("game-set-detail", args=[set_id]), {"name": "Bolão"}, format="json"
+        )
+        assert response.status_code == 200
+        assert response.data == {"id": set_id, "name": "Bolão"}
+
+        added = auth_client.post(
+            reverse("game-list"), {"numbers": NUMBERS, "set_name": "bolão"}, format="json"
+        )
+        assert added.data["set_id"] == set_id
+        assert added.data["set_name"] == "Bolão"
+
+    def test_rename_conflict_returns_400(self, auth_client) -> None:
+        auth_client.post(reverse("game-list"), {"numbers": NUMBERS, "set_name": "a"}, format="json")
+        created = auth_client.post(
+            reverse("game-list"), {"numbers": NUMBERS, "set_name": "b"}, format="json"
+        )
+        response = auth_client.patch(
+            reverse("game-set-detail", args=[created.data["set_id"]]), {"name": "A"}, format="json"
+        )
+        assert response.status_code == 400
+        assert "name" in response.data
+
+    def test_rename_other_users_set_returns_404(self, auth_client, other_user) -> None:
+        other_client = APIClient()
+        other_client.force_authenticate(user=other_user)
+        created = other_client.post(
+            reverse("game-list"), {"numbers": NUMBERS, "set_name": "x"}, format="json"
+        )
+        response = auth_client.patch(
+            reverse("game-set-detail", args=[created.data["set_id"]]), {"name": "y"}, format="json"
+        )
+        assert response.status_code == 404
+
+    def test_rename_requires_auth(self) -> None:
+        response = APIClient().patch(reverse("game-set-detail", args=[1]), {"name": "y"}, format="json")
+        assert response.status_code == 403

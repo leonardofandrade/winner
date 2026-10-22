@@ -9,8 +9,12 @@ class GameSetError(WinnerException):
     """Apelido de conjunto inválido."""
 
 
+class GameSetNotFoundError(GameSetError):
+    """Conjunto inexistente ou de outro usuário."""
+
+
 class GameSetService:
-    """Abre um conjunto de jogos pelo apelido, reutilizando o que já existe."""
+    """Abre e renomeia conjuntos de jogos pelo apelido."""
 
     MAX_NAME_LENGTH = 40
 
@@ -31,3 +35,14 @@ class GameSetService:
         if existing is not None:
             return existing
         return self._repo.create(user, cleaned)
+
+    def rename(self, user: AbstractBaseUser, set_id: int, name: str) -> GameSet:
+        game_set = self._repo.get_for_user_by_id(user, set_id)
+        if game_set is None:
+            raise GameSetNotFoundError("Conjunto não encontrado.")
+        cleaned = self.clean_name(name)
+        # Mudar só maiúsculas/minúsculas do próprio conjunto é permitido
+        existing = self._repo.get_for_user_by_name(user, cleaned)
+        if existing is not None and existing.pk != game_set.pk:
+            raise GameSetError(f"Você já tem um conjunto chamado {existing.name}.")
+        return self._repo.rename(game_set, cleaned)

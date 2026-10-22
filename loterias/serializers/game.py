@@ -9,12 +9,13 @@ _MAX_VALUE = 25
 
 
 class GameSerializer(serializers.ModelSerializer):
+    set_id = serializers.IntegerField(source="game_set_id", read_only=True, allow_null=True)
     set_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Game
-        fields = ["id", "user", "numbers", "set_name", "created_at", "updated_at"]
-        read_only_fields = ["user", "set_name", "created_at", "updated_at"]
+        fields = ["id", "user", "numbers", "set_id", "set_name", "created_at", "updated_at"]
+        read_only_fields = ["user", "set_id", "set_name", "created_at", "updated_at"]
 
     def get_set_name(self, obj: Game) -> str | None:
         if obj.game_set_id is None:

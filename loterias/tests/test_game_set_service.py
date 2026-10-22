@@ -1,7 +1,11 @@
 import pytest
 from django.contrib.auth import get_user_model
 
-from loterias.services.game_set_service import GameSetError, GameSetService
+from loterias.services.game_set_service import (
+    GameSetError,
+    GameSetNotFoundError,
+    GameSetService,
+)
 
 User = get_user_model()
 
@@ -37,3 +41,29 @@ class TestGameSetService:
         first = service.open(user, "firma")
         second = service.open(other_user, "firma")
         assert second.pk != first.pk
+
+
+@pytest.mark.django_db
+class TestGameSetRename:
+    def test_renames_own_set(self, user) -> None:
+        service = GameSetService()
+        game_set = service.open(user, "firma")
+        renamed = service.rename(user, game_set.pk, "  Bolão   da firma ")
+        assert renamed.name == "Bolão da firma"
+
+    def test_allows_changing_only_case(self, user) -> None:
+        service = GameSetService()
+        game_set = service.open(user, "firma")
+        assert service.rename(user, game_set.pk, "Firma").name == "Firma"
+
+    def test_rejects_name_of_another_own_set(self, user) -> None:
+        service = GameSetService()
+        service.open(user, "família")
+        game_set = service.open(user, "firma")
+        with pytest.raises(GameSetError, match="família"):
+            service.rename(user, game_set.pk, "Família")
+
+    def test_rejects_set_of_another_user(self, user, other_user) -> None:
+        game_set = GameSetService().open(other_user, "firma")
+        with pytest.raises(GameSetNotFoundError):
+            GameSetService().rename(user, game_set.pk, "minha")

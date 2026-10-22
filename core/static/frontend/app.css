@@ -288,6 +288,25 @@ input, select {
   max-width: min(520px, calc(100% - 24px));
 }
 
+.modal {
+  width: min(420px, calc(100% - 32px));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  padding: 0;
+  box-shadow: var(--shadow);
+}
+
+/* Padding no form: assim só o fundo escuro conta como clique fora */
+.modal form { padding: 22px; }
+
+.modal::backdrop { background: rgba(16, 36, 26, 0.45); }
+
+.modal-error { color: var(--danger); margin: 0; }
+
+.modal-actions { justify-content: flex-end; }
+
 .tiers { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 
 .tiers span {

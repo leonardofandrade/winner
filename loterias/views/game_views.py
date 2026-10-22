@@ -1,5 +1,5 @@
 from rest_framework import generics, status
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 from loterias.repositories import GameRepository, GameResultRepository
 from loterias.serializers import GameResultSerializer, GameSerializer
 from loterias.services import GameSetService, ResultCalculationService
-from loterias.services.game_set_service import GameSetError
+from loterias.services.game_set_service import GameSetError, GameSetNotFoundError
 
 _game_repo = GameRepository()
 _result_repo = GameResultRepository()
@@ -62,3 +62,18 @@ class GameResultsView(generics.ListAPIView):
             _game_repo.get_by_user(self.request.user), pk=self.kwargs["pk"]
         )
         return _result_repo.get_for_game(game)
+
+
+class GameSetDetailView(APIView):
+    """Renomeia um conjunto de jogos do usuário."""
+
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request: Request, pk: int) -> Response:
+        try:
+            game_set = GameSetService().rename(request.user, pk, str(request.data.get("name") or ""))
+        except GameSetNotFoundError as exc:
+            raise NotFound(str(exc)) from exc
+        except GameSetError as exc:
+            raise ValidationError({"name": [str(exc)]}) from exc
+        return Response({"id": game_set.pk, "name": game_set.name}, status=status.HTTP_200_OK)

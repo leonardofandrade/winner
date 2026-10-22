@@ -216,18 +216,20 @@ async function renderContest(number) {
     </section>`;
 }
 
-function gameForm() {
+function gameForm(setNames = []) {
   return `
-    <section class="panel stack">
+    <section class="panel stack" id="new-game">
       <h2>Novo jogo</h2>
       <p class="muted" data-picked-count>${state.picked.size} dezena(s) selecionada(s). Escolha de 15 a 20.</p>
       ${picker()}
       <form class="row" data-action="save-game">
         <label>Apelido do conjunto
-          <input name="set_name" value="${esc(state.setName)}" placeholder="bolão da firma" maxlength="40">
+          <input name="set_name" value="${esc(state.setName)}" placeholder="bolão da firma" maxlength="40" list="set-names">
+          <datalist id="set-names">${setNames.map((name) => `<option value="${esc(name)}"></option>`).join("")}</datalist>
         </label>
         <button class="primary" type="submit">Salvar</button>
       </form>
+      <p class="muted">Use o apelido de um conjunto existente para adicionar o jogo a ele.</p>
     </section>`;
 }
 
@@ -239,13 +241,20 @@ async function renderGames() {
   const data = await api("/api/games/");
   const groups = new Map();
   for (const game of data.results) {
-    const key = game.set_name || "";
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(game);
+    const key = game.set_id ?? "";
+    if (!groups.has(key)) groups.set(key, { name: game.set_name, games: [] });
+    groups.get(key).games.push(game);
   }
-  const cards = [...groups.entries()].map(([name, games]) => `
+  const setNames = [...groups.values()].map((group) => group.name).filter(Boolean);
+  const cards = [...groups.entries()].map(([setId, { name, games }]) => `
     <section class="stack">
-      <h2>${name ? esc(name) : "Sem apelido"}</h2>
+      <div class="row" style="justify-content:space-between">
+        <h2>${name ? esc(name) : "Sem apelido"}</h2>
+        ${name ? `<div class="actions">
+          <button type="button" class="ghost" data-action="add-to-set" data-name="${esc(name)}">Adicionar jogo</button>
+          <button type="button" class="ghost" data-action="rename-set" data-id="${setId}" data-name="${esc(name)}">Renomear</button>
+        </div>` : ""}
+      </div>
       ${games.map((game) => `
         <article class="game-card stack">
           <div class="row" style="justify-content:space-between">
@@ -263,7 +272,7 @@ async function renderGames() {
   main().innerHTML = `
     <h1>Jogos</h1>
     <p class="lede">Cada conjunto leva um apelido. O cálculo compara o jogo com o histórico importado.</p>
-    ${gameForm()}
+    ${gameForm(setNames)}
     <div class="stack" style="margin-top:22px">${cards || `<p class="muted">Nenhum jogo salvo.</p>`}</div>`;
 }
 
@@ -333,6 +342,56 @@ async function showResults(gameId, page = 1) {
   slot.innerHTML = `<div class="meta">${rows || `<span class="muted">Sem acertos calculados.</span>`}</div><div class="pager">${prev}${next}</div>`;
 }
 
+function renameDialog() {
+  return document.querySelector("#rename-dialog");
+}
+
+function showModalError(message) {
+  const slot = renameDialog().querySelector("[data-modal-error]");
+  slot.textContent = message;
+  slot.hidden = !message;
+}
+
+function openRenameDialog(setId, currentName) {
+  const dialog = renameDialog();
+  const form = dialog.querySelector("form");
+  form.elements.id.value = setId;
+  form.elements.name.value = currentName;
+  dialog.dataset.current = currentName;
+  showModalError("");
+  dialog.showModal();
+  form.elements.name.select();
+}
+
+async function submitRename(form, body) {
+  const dialog = renameDialog();
+  const current = dialog.dataset.current;
+  const name = String(body.name || "").trim();
+  if (name === current) {
+    dialog.close();
+    return;
+  }
+  const submit = form.querySelector('button[type="submit"]');
+  submit.disabled = true;
+  try {
+    const renamed = await api(`/api/game-sets/${body.id}/`, { method: "PATCH", body: { name } });
+    if (state.setName.toLowerCase() === current.toLowerCase()) state.setName = renamed.name;
+    dialog.close();
+    toast(`Conjunto renomeado para ${renamed.name}.`);
+    await renderGames();
+  } catch (error) {
+    // Mantém o modal aberto para o usuário corrigir o apelido
+    showModalError(error.message.replace(/^name: /, ""));
+  } finally {
+    submit.disabled = false;
+  }
+}
+
+// Clique no fundo escuro fecha o modal
+renameDialog().addEventListener("click", (event) => {
+  if (event.target === event.currentTarget) event.currentTarget.close();
+});
+
 document.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-action]");
   if (!button || button.type === "submit") return;
@@ -376,6 +435,16 @@ document.addEventListener("click", async (event) => {
       await api(`/api/games/${button.dataset.id}/`, { method: "DELETE" });
       toast("Jogo apagado.");
       await renderGames();
+    } else if (action === "add-to-set") {
+      state.setName = button.dataset.name;
+      const input = document.querySelector('input[name="set_name"]');
+      if (input) input.value = state.setName;
+      document.querySelector("#new-game")?.scrollIntoView({ behavior: "smooth" });
+      toast(`Escolha as dezenas e salve no conjunto ${state.setName}.`);
+    } else if (action === "rename-set") {
+      openRenameDialog(button.dataset.id, button.dataset.name);
+    } else if (action === "close-dialog") {
+      button.closest("dialog").close();
     } else if (action === "keep") {
       if (!state.user) {
         location.hash = "#/entrar";
@@ -418,6 +487,8 @@ document.addEventListener("submit", async (event) => {
       state.picked = new Set();
       toast("Jogo salvo.");
       await renderGames();
+    } else if (action === "rename-set") {
+      await submitRename(form, body);
     } else if (action === "suggest") {
       state.suggestSize = Number(body.size);
       state.suggestCount = Number(body.count);

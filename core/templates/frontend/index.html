@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,680&family=Outfit:wght@380;520;650&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'frontend/app.css' %}?v=3">
+  <link rel="stylesheet" href="{% static 'frontend/app.css' %}?v=4">
 </head>
 <body>
   <div class="app">
@@ -28,6 +28,20 @@
     <main id="main"></main>
   </div>
   <p id="toast" class="toast" hidden></p>
-  <script type="module" src="{% static 'frontend/app.js' %}?v=3"></script>
+  <dialog id="rename-dialog" class="modal" aria-labelledby="rename-title">
+    <form class="stack" data-action="rename-set">
+      <h2 id="rename-title">Renomear conjunto</h2>
+      <input type="hidden" name="id">
+      <label>Novo apelido
+        <input name="name" maxlength="40" required autocomplete="off">
+      </label>
+      <p class="modal-error" data-modal-error hidden></p>
+      <div class="actions modal-actions">
+        <button type="button" class="ghost" data-action="close-dialog">Cancelar</button>
+        <button type="submit" class="primary">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+  <script type="module" src="{% static 'frontend/app.js' %}?v=4"></script>
 </body>
 </html>
