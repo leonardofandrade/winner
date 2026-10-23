@@ -15,6 +15,7 @@ from telegram.ext import (
 from telegram_bot.constants import DAILY_REPORT_TIME
 from telegram_bot.handlers import (
     error_handler,
+    ganhei_handler,
     help_handler,
     latest_handler,
     mygames_handler,
@@ -56,6 +57,7 @@ def create_application() -> Application:
     app.add_handler(CommandHandler("latest", latest_handler))
     app.add_handler(CommandHandler("mygames", mygames_handler))
     app.add_handler(CommandHandler("atualizar", sync_handler))
+    app.add_handler(CommandHandler("ganhei", ganhei_handler))
     app.add_handler(CommandHandler("help", help_handler))
 
     app.add_handler(ConversationHandler(

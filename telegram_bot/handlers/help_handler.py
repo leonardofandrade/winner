@@ -10,6 +10,7 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "/suggest — Sugestões de jogos por frequência\n"
         "/mygames — Seus jogos cadastrados\n"
         "/registrar — Cadastrar um conjunto de jogos\n"
+        "/ganhei — Simular o aviso de 15 acertos\n"
         "/help — Esta mensagem\n\n"
         "*Cadastrar jogos:*\n"
         "/registrar pede um apelido, as dezenas e os números.\n"

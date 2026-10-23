@@ -92,12 +92,12 @@ class NotifyResultsService:
             result = await sync_to_async(self._calc.calculate)(game, contest)
             pairs.append((game, result))
 
-        for chunk in _split_message(self._build_message(contest, pairs)):
+        for chunk in _split_message(self.build_message(contest, pairs)):
             await bot.send_message(chat_id=tg_user.telegram_id, text=chunk, parse_mode="Markdown")
         logger.info("Contest #%s — notified telegram_id=%s", contest.number, tg_user.telegram_id)
         return True
 
-    def _build_message(self, contest: Contest, pairs: list[tuple[Game, GameResult]]) -> str:
+    def build_message(self, contest: Contest, pairs: list[tuple[Game, GameResult]]) -> str:
         date_str = contest.draw_date.strftime("%d/%m/%Y")
         sorteio = "  ".join(f"{n:02d}" for n in contest.winning_numbers)
         lines = [

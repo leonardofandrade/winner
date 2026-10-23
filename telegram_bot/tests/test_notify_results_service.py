@@ -63,7 +63,7 @@ class TestNotifyResultsService:
     def test_build_message_with_prize(self, contest, game) -> None:
         result = GameResult(game=game, contest=contest, hits=13, prize=Decimal("25.00"))
         service = NotifyResultsService()
-        msg = service._build_message(contest, [(game, result)])
+        msg = service.build_message(contest, [(game, result)])
         assert "3709" in msg
         assert "13 acertos" in msg
         assert "R$ 25,00" in msg
@@ -71,14 +71,14 @@ class TestNotifyResultsService:
     def test_build_message_no_prize(self, contest, game) -> None:
         result = GameResult(game=game, contest=contest, hits=9, prize=Decimal("0"))
         service = NotifyResultsService()
-        msg = service._build_message(contest, [(game, result)])
+        msg = service.build_message(contest, [(game, result)])
         assert "9 acertos" in msg
         assert "Total" not in msg
 
     def test_build_message_shows_sorteio(self, contest, game) -> None:
         result = GameResult(game=game, contest=contest, hits=15, prize=Decimal("100.00"))
         service = NotifyResultsService()
-        msg = service._build_message(contest, [(game, result)])
+        msg = service.build_message(contest, [(game, result)])
         assert "01" in msg
         assert "15" in msg
 

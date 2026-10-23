@@ -1,4 +1,5 @@
 from .error_handler import error_handler
+from .ganhei_handler import ganhei_handler
 from .help_handler import help_handler
 from .latest_handler import latest_handler
 from .mygames_handler import mygames_handler
@@ -16,6 +17,7 @@ from .sync_handler import sync_handler
 
 __all__ = [
     "error_handler",
+    "ganhei_handler",
     "start_handler",
     "latest_handler",
     "suggest_start",
