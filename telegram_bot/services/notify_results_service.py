@@ -63,10 +63,9 @@ class NotifyResultsService:
         return self._contest_repo.get_after(tg_user.last_notified_contest, _MAX_CATCH_UP)
 
     async def _notify_contest(self, bot: Bot, tg_user: TelegramUser, contest: Contest) -> bool:
-        """Envia o resultado de um concurso. Retorna False se o usuário não tinha jogos nele."""
-        games = await sync_to_async(list)(
-            self._game_repo.get_by_user_until(tg_user.user, contest.draw_date)
-        )
+        """Envia o resultado de um concurso. Retorna False se o usuário não tem jogos."""
+        # Todo jogo salvo vale para todos os concursos até ser apagado
+        games = await sync_to_async(list)(self._game_repo.get_by_user(tg_user.user))
         if not games:
             return False
 

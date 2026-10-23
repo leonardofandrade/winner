@@ -137,11 +137,12 @@ class TestNotifyPending:
         await tg_user.arefresh_from_db()
         assert tg_user.last_notified_contest == 3709
 
-    async def test_ignores_games_registered_after_draw(self, tg_user, user, contest) -> None:
+    async def test_includes_games_registered_after_draw(self, tg_user, user, contest) -> None:
+        # Jogos salvos valem para todos os concursos até serem apagados
         await sync_to_async(_make_game)(user, datetime(2026, 6, 20, tzinfo=UTC))
         bot = AsyncMock()
         sent = await NotifyResultsService().notify_pending(bot)
-        assert sent == 0
+        assert sent == 1
 
     async def test_send_failure_keeps_contest_pending(self, tg_user, contest, game) -> None:
         bot = AsyncMock()
