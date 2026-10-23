@@ -9,6 +9,7 @@ from loterias.repositories import ContestRepository, GameRepository
 from loterias.services import ResultCalculationService
 from telegram_bot.models import TelegramUser
 from telegram_bot.repositories import TelegramUserRepository
+from telegram_bot.utils import split_message
 
 logger = logging.getLogger(__name__)
 
@@ -16,30 +17,12 @@ _HIT_EMOJI = {15: "🏆", 14: "🥇", 13: "🎉", 12: "👍", 11: "✅"}
 _MIN_PRIZE_HITS = 11
 # Após muitos dias sem rodar, envia só os concursos mais recentes para não inundar o chat
 _MAX_CATCH_UP = 7
-# Limite de caracteres por mensagem imposto pelo Telegram
-_MESSAGE_LIMIT = 4096
 
 
 def _fmt_brl(value: Decimal) -> str:
     """Formata Decimal como R$ 1.234,50."""
     formatted = f"{value:,.2f}"
     return "R$ " + formatted.replace(",", "X").replace(".", ",").replace("X", ".")
-
-
-def _split_message(text: str, limit: int = _MESSAGE_LIMIT) -> list[str]:
-    """Quebra o texto em partes de até limit caracteres, sem cortar linhas."""
-    chunks: list[str] = []
-    current = ""
-    for line in text.split("\n"):
-        candidate = f"{current}\n{line}" if current else line
-        if len(candidate) > limit and current:
-            chunks.append(current)
-            current = line
-        else:
-            current = candidate
-    if current:
-        chunks.append(current)
-    return chunks
 
 
 class NotifyResultsService:
@@ -92,7 +75,7 @@ class NotifyResultsService:
             result = await sync_to_async(self._calc.calculate)(game, contest)
             pairs.append((game, result))
 
-        for chunk in _split_message(self.build_message(contest, pairs)):
+        for chunk in split_message(self.build_message(contest, pairs)):
             await bot.send_message(chat_id=tg_user.telegram_id, text=chunk, parse_mode="Markdown")
         logger.info("Contest #%s — notified telegram_id=%s", contest.number, tg_user.telegram_id)
         return True

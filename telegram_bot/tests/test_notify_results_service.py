@@ -11,8 +11,8 @@ from telegram_bot.models import TelegramUser
 from telegram_bot.services.notify_results_service import (
     NotifyResultsService,
     _fmt_brl,
-    _split_message,
 )
+from telegram_bot.utils import split_message
 
 User = get_user_model()
 
@@ -86,11 +86,11 @@ class TestNotifyResultsService:
 
 class TestSplitMessage:
     def test_short_text_is_single_chunk(self) -> None:
-        assert _split_message("a\nb") == ["a\nb"]
+        assert split_message("a\nb") == ["a\nb"]
 
     def test_long_text_splits_on_lines(self) -> None:
         text = "\n".join("x" * 100 for _ in range(100))
-        chunks = _split_message(text, limit=1000)
+        chunks = split_message(text, limit=1000)
         assert all(len(c) <= 1000 for c in chunks)
         assert "\n".join(chunks) == text
 

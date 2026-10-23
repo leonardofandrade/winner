@@ -2,15 +2,16 @@ from asgiref.sync import sync_to_async
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from loterias.models import GameResult
+from loterias.repositories import GameResultRepository
 from telegram_bot.repositories import TelegramUserRepository
 from telegram_bot.services import GetUserGamesService
+from telegram_bot.utils import split_message
 
 _repo = TelegramUserRepository()
 _service = GetUserGamesService()
+_results = GameResultRepository()
 
 _RESULT_LIMIT = 5   # concursos recentes por jogo
-_GAME_LIMIT = 10    # jogos exibidos
 _MIN_PRIZE_HITS = 11
 
 _HIT_EMOJI = {15: "🏆", 14: "🥇", 13: "🎉", 12: "👍", 11: "✅"}
@@ -35,7 +36,7 @@ async def mygames_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         )
         return
 
-    games = await sync_to_async(list)(games_qs[:_GAME_LIMIT])
+    games = await sync_to_async(list)(games_qs)
     if not games:
         await update.message.reply_text("Você ainda não tem jogos cadastrados.\nUse /registrar para cadastrar.")
         return
@@ -54,11 +55,7 @@ async def mygames_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             lines.append(f"*Jogo #{game.pk}* ({len(game.numbers)} dezenas)")
             lines.append(f"`{nums}`")
 
-            results = await sync_to_async(list)(
-                GameResult.objects.filter(game=game)
-                .select_related("contest")
-                .order_by("-contest__number")[:_RESULT_LIMIT]
-            )
+            results = await sync_to_async(list)(_results.get_for_game(game)[:_RESULT_LIMIT])
 
             if results:
                 for r in results:
@@ -73,4 +70,6 @@ async def mygames_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
         lines.append("")
 
-    await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+    # Com muitos jogos o texto passa do limite do Telegram: envia em partes
+    for chunk in split_message("\n".join(lines)):
+        await update.message.reply_text(chunk, parse_mode="Markdown")
