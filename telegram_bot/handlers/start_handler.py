@@ -2,6 +2,7 @@ from asgiref.sync import sync_to_async
 from telegram import Update
 from telegram.ext import ContextTypes
 
+from telegram_bot.constants import commands_text
 from telegram_bot.repositories import TelegramUserRepository
 
 _repo = TelegramUserRepository()
@@ -18,10 +19,6 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await update.message.reply_text(
         f"{greeting}, {user.first_name}! 🍀\n\n"
         "Comandos disponíveis:\n"
-        "/latest — último concurso\n"
-        "/suggest — sugestão de jogo\n"
-        "/registrar — cadastrar um conjunto de jogos\n"
-        "/mygames — seus jogos e resultados\n"
-        "/atualizar — importar novos concursos (admin)\n"
-        "/help — ajuda"
+        f"{commands_text()}\n"
+        "/atualizar — Importar novos concursos (admin)"
     )

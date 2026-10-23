@@ -1,7 +1,7 @@
 from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.db import close_old_connections
-from telegram import Update
+from telegram import BotCommand, Update
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -13,7 +13,7 @@ from telegram.ext import (
     filters,
 )
 
-from telegram_bot.constants import DAILY_REPORT_TIME
+from telegram_bot.constants import BOT_COMMANDS, DAILY_REPORT_TIME
 from telegram_bot.handlers import (
     apagar_confirm,
     apagar_handler,
@@ -53,8 +53,18 @@ async def _release_stale_db_connections(
     await sync_to_async(close_old_connections)()
 
 
+async def _publish_command_menu(app: Application) -> None:
+    # Atualiza o menu "/" do Telegram a cada início, sem depender do BotFather
+    await app.bot.set_my_commands([BotCommand(name, desc) for name, desc in BOT_COMMANDS])
+
+
 def create_application() -> Application:
-    app = Application.builder().token(settings.TELEGRAM_BOT_TOKEN).build()
+    app = (
+        Application.builder()
+        .token(settings.TELEGRAM_BOT_TOKEN)
+        .post_init(_publish_command_menu)
+        .build()
+    )
 
     app.add_handler(TypeHandler(Update, _release_stale_db_connections), group=-1)
     app.add_handler(CommandHandler("start", start_handler))
