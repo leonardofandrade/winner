@@ -1,6 +1,7 @@
 import pytest
 from django.contrib.auth import get_user_model
 
+from loterias.models import Game, GameSet
 from loterias.services.game_set_service import (
     GameSetError,
     GameSetNotFoundError,
@@ -67,3 +68,38 @@ class TestGameSetRename:
         game_set = GameSetService().open(other_user, "firma")
         with pytest.raises(GameSetNotFoundError):
             GameSetService().rename(user, game_set.pk, "minha")
+
+
+@pytest.mark.django_db
+class TestGameSetDelete:
+    def test_find_ignores_case_and_extra_spaces(self, user) -> None:
+        game_set = GameSetService().open(user, "Bolão da firma")
+        assert GameSetService().find(user, "  bolão   DA firma ").pk == game_set.pk
+
+    def test_find_returns_none_for_unknown_name(self, user) -> None:
+        assert GameSetService().find(user, "nada") is None
+
+    def test_delete_removes_set_and_games(self, user) -> None:
+        game_set = GameSetService().open(user, "firma")
+        Game.objects.create(user=user, game_set=game_set, numbers=list(range(1, 16)))
+        Game.objects.create(user=user, numbers=list(range(1, 16)))
+
+        assert GameSetService().delete(user, game_set.pk) == ("firma", 1)
+        assert not GameSet.objects.filter(pk=game_set.pk).exists()
+        # Jogo sem conjunto continua
+        assert Game.objects.count() == 1
+
+    def test_delete_rejects_set_of_another_user(self, user, other_user) -> None:
+        game_set = GameSetService().open(other_user, "firma")
+        with pytest.raises(GameSetNotFoundError):
+            GameSetService().delete(user, game_set.pk)
+        assert GameSet.objects.filter(pk=game_set.pk).exists()
+
+    def test_list_for_user_counts_games(self, user, other_user) -> None:
+        firma = GameSetService().open(user, "firma")
+        GameSetService().open(user, "amigos")
+        GameSetService().open(other_user, "outro")
+        Game.objects.create(user=user, game_set=firma, numbers=list(range(1, 16)))
+
+        sets = GameSetService().list_for_user(user)
+        assert [(s.name, s.games_count) for s in sets] == [("amigos", 0), ("firma", 1)]

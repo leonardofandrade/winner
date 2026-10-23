@@ -14,7 +14,7 @@ class GameSetNotFoundError(GameSetError):
 
 
 class GameSetService:
-    """Abre e renomeia conjuntos de jogos pelo apelido."""
+    """Abre, renomeia e apaga conjuntos de jogos pelo apelido."""
 
     MAX_NAME_LENGTH = 40
 
@@ -46,3 +46,22 @@ class GameSetService:
         if existing is not None and existing.pk != game_set.pk:
             raise GameSetError(f"Você já tem um conjunto chamado {existing.name}.")
         return self._repo.rename(game_set, cleaned)
+
+    def find(self, user: AbstractBaseUser, name: str) -> GameSet | None:
+        """Busca um conjunto do usuário pelo apelido, ignorando maiúsculas e espaços extras."""
+        return self._repo.get_for_user_by_name(user, self.clean_name(name))
+
+    def list_for_user(self, user: AbstractBaseUser) -> list[GameSet]:
+        return self._repo.list_with_game_count(user)
+
+    def count_games(self, game_set: GameSet) -> int:
+        return self._repo.count_games(game_set)
+
+    def delete(self, user: AbstractBaseUser, set_id: int) -> tuple[str, int]:
+        """Apaga o conjunto e seus jogos. Retorna (apelido, quantidade de jogos apagados)."""
+        game_set = self._repo.get_for_user_by_id(user, set_id)
+        if game_set is None:
+            raise GameSetNotFoundError("Conjunto não encontrado.")
+        name, games = game_set.name, self._repo.count_games(game_set)
+        self._repo.delete(game_set)
+        return name, games

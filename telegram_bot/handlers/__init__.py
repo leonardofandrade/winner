@@ -1,3 +1,4 @@
+from .apagar_handler import apagar_confirm, apagar_handler
 from .error_handler import error_handler
 from .ganhei_handler import ganhei_handler
 from .help_handler import help_handler
@@ -16,6 +17,8 @@ from .suggest_handler import suggest_cancel, suggest_count, suggest_size, sugges
 from .sync_handler import sync_handler
 
 __all__ = [
+    "apagar_confirm",
+    "apagar_handler",
     "error_handler",
     "ganhei_handler",
     "start_handler",

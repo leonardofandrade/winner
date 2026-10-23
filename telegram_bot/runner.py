@@ -4,6 +4,7 @@ from django.db import close_old_connections
 from telegram import Update
 from telegram.ext import (
     Application,
+    CallbackQueryHandler,
     CommandHandler,
     ContextTypes,
     ConversationHandler,
@@ -14,6 +15,8 @@ from telegram.ext import (
 
 from telegram_bot.constants import DAILY_REPORT_TIME
 from telegram_bot.handlers import (
+    apagar_confirm,
+    apagar_handler,
     error_handler,
     ganhei_handler,
     help_handler,
@@ -32,6 +35,7 @@ from telegram_bot.handlers import (
     suggest_start,
     sync_handler,
 )
+from telegram_bot.handlers.apagar_handler import CALLBACK_PREFIX as APAGAR_PREFIX
 from telegram_bot.handlers.register_handler import ASK_COUNT as REG_ASK_COUNT
 from telegram_bot.handlers.register_handler import ASK_NAME as REG_ASK_NAME
 from telegram_bot.handlers.register_handler import ASK_NUMBERS as REG_ASK_NUMBERS
@@ -58,6 +62,8 @@ def create_application() -> Application:
     app.add_handler(CommandHandler("mygames", mygames_handler))
     app.add_handler(CommandHandler("atualizar", sync_handler))
     app.add_handler(CommandHandler("ganhei", ganhei_handler))
+    app.add_handler(CommandHandler("apagar", apagar_handler))
+    app.add_handler(CallbackQueryHandler(apagar_confirm, pattern=f"^{APAGAR_PREFIX}"))
     app.add_handler(CommandHandler("help", help_handler))
 
     app.add_handler(ConversationHandler(
