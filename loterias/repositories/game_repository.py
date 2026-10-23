@@ -1,6 +1,7 @@
 from datetime import date, datetime, time, timedelta
 
 from django.contrib.auth.models import AbstractBaseUser
+from django.db import transaction
 from django.db.models import QuerySet
 from django.utils import timezone
 
@@ -24,6 +25,15 @@ class GameRepository:
 
     def create(self, user: AbstractBaseUser, numbers: list[int], game_set: GameSet | None = None) -> Game:
         return Game.objects.create(user=user, numbers=numbers, game_set=game_set)
+
+    def create_many(
+        self, user: AbstractBaseUser, games: list[list[int]], game_set: GameSet | None = None
+    ) -> int:
+        """Cria vários jogos de uma vez: ou todos são salvos, ou nenhum."""
+        with transaction.atomic():
+            for numbers in games:
+                Game.objects.create(user=user, numbers=numbers, game_set=game_set)
+        return len(games)
 
     def get_by_id_for_user(self, game_id: int, user: AbstractBaseUser) -> Game | None:
         return Game.objects.filter(pk=game_id, user=user).first()

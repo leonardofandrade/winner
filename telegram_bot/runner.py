@@ -23,10 +23,9 @@ from telegram_bot.handlers import (
     latest_handler,
     mygames_handler,
     registrar_cancel,
-    registrar_count,
     registrar_done,
+    registrar_games,
     registrar_name,
-    registrar_numbers,
     registrar_start,
     start_handler,
     suggest_cancel,
@@ -36,9 +35,8 @@ from telegram_bot.handlers import (
     sync_handler,
 )
 from telegram_bot.handlers.apagar_handler import CALLBACK_PREFIX as APAGAR_PREFIX
-from telegram_bot.handlers.register_handler import ASK_COUNT as REG_ASK_COUNT
+from telegram_bot.handlers.register_handler import ASK_GAMES as REG_ASK_GAMES
 from telegram_bot.handlers.register_handler import ASK_NAME as REG_ASK_NAME
-from telegram_bot.handlers.register_handler import ASK_NUMBERS as REG_ASK_NUMBERS
 from telegram_bot.handlers.suggest_handler import ASK_COUNT as SUG_ASK_COUNT
 from telegram_bot.handlers.suggest_handler import ASK_SIZE as SUG_ASK_SIZE
 from telegram_bot.jobs import daily_report_job
@@ -89,8 +87,7 @@ def create_application() -> Application:
         entry_points=[CommandHandler("registrar", registrar_start)],
         states={
             REG_ASK_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, registrar_name)],
-            REG_ASK_COUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, registrar_count)],
-            REG_ASK_NUMBERS: [MessageHandler(filters.TEXT & ~filters.COMMAND, registrar_numbers)],
+            REG_ASK_GAMES: [MessageHandler(filters.TEXT & ~filters.COMMAND, registrar_games)],
         },
         fallbacks=[
             CommandHandler("pronto", registrar_done),

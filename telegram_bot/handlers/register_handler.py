@@ -1,10 +1,11 @@
+from collections import Counter
+
 from asgiref.sync import sync_to_async
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 
-from loterias.models import Game
 from loterias.services.game_set_service import GameSetError, GameSetService
-from telegram_bot.constants import GAME_PRICES, VALID_GAME_SIZES
+from telegram_bot.constants import GAME_PRICES
 from telegram_bot.models import TelegramUser
 from telegram_bot.repositories import TelegramUserRepository
 from telegram_bot.services import RegisterGameService
@@ -15,16 +16,33 @@ _games = RegisterGameService()
 _sets = GameSetService()
 
 # Estados da conversa
-ASK_NAME, ASK_COUNT, ASK_NUMBERS = range(3)
+ASK_NAME, ASK_GAMES = range(2)
+
+_GAMES_PROMPT = (
+    "Envie os jogos, *um por linha*. Pode mandar vários de uma vez.\n"
+    "Cada linha com 15 a 20 dezenas, de 1 a 25, sem repetição.\n\n"
+    "Exemplo:\n"
+    "`01 02 03 04 05 06 07 08 09 10 11 12 13 14 15`\n"
+    "`02 04 06 08 10 12 14 16 18 20 21 22 23 24 25`"
+)
 
 
 def _md(value: str) -> str:
     return "".join(f"\\{ch}" if ch in "\\_*`[" else ch for ch in value)
 
 
-def _register(telegram_user: TelegramUser, text: str, name: str) -> Game:
+def _register_many(telegram_user: TelegramUser, games: list[list[int]], name: str) -> int:
     game_set = _sets.open(telegram_user.user, name)
-    return _games.execute(telegram_user, text, game_set=game_set)
+    return _games.execute_many(telegram_user, games, game_set=game_set)
+
+
+def _summary(games: list[list[int]]) -> str:
+    """Resumo por quantidade de dezenas, ex.: '• 3 jogo(s) de 15 dezenas — R$ 3,50 cada'."""
+    sizes = Counter(len(numbers) for numbers in games)
+    return "\n".join(
+        f"• {count} jogo(s) de {size} dezenas — {GAME_PRICES[size]} cada"
+        for size, count in sorted(sizes.items())
+    )
 
 
 async def registrar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -44,7 +62,8 @@ async def registrar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     context.user_data["register_saved"] = 0
     await update.message.reply_text(
         "Qual o apelido deste conjunto de jogos?\n"
-        "Exemplo: `bolão da firma`",
+        "Exemplo: `bolão da firma`\n\n"
+        "Se o apelido já existir, os jogos entram nesse conjunto.",
         parse_mode="Markdown",
     )
     return ASK_NAME
@@ -59,69 +78,37 @@ async def registrar_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     context.user_data["register_name"] = name
     await update.message.reply_text(
-        f"Conjunto *{_md(name)}*.\n\n"
-        "Quantas dezenas no primeiro jogo?\n"
-        "Digite um número de *15 a 20*:",
+        f"Conjunto *{_md(name)}*.\n\n{_GAMES_PROMPT}\n\nUse /cancelar para desistir.",
         parse_mode="Markdown",
     )
-    return ASK_COUNT
+    return ASK_GAMES
 
 
-async def registrar_count(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    text = update.message.text.strip()
-    try:
-        count = int(text)
-    except ValueError:
-        await update.message.reply_text("Envie apenas o número (ex: `15`). Tente de novo:", parse_mode="Markdown")
-        return ASK_COUNT
-
-    if count not in VALID_GAME_SIZES:
-        await update.message.reply_text("Escolha entre *15 e 20* dezenas. Tente de novo:", parse_mode="Markdown")
-        return ASK_COUNT
-
-    context.user_data["register_count"] = count
-    price = GAME_PRICES[count]
-    await update.message.reply_text(
-        f"Jogo de *{count} dezenas* — {price}.\n\n"
-        f"Envie as {count} dezenas separadas por espaço:\n"
-        f"Valores de 1 a 25, sem repetição.\n\n"
-        f"Use /cancelar para desistir.",
-        parse_mode="Markdown",
-    )
-    return ASK_NUMBERS
-
-
-async def registrar_numbers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    expected = context.user_data.get("register_count", 15)
+async def registrar_games(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     name = context.user_data.get("register_name", "")
-    text = update.message.text.strip()
-
-    tokens = [t for t in text.split() if t.isdigit()]
-    if len(tokens) != expected:
+    try:
+        games = _games.parse_games(update.message.text)
+    except RegisterGameError as exc:
         await update.message.reply_text(
-            f"Você enviou {len(tokens)} dezena(s), mas escolheu jogar com {expected}.\n"
-            f"Envie exatamente *{expected} dezenas*:",
-            parse_mode="Markdown",
+            f"{exc}\n\nNenhum jogo foi salvo. Corrija e envie a lista de novo."
         )
-        return ASK_NUMBERS
+        return ASK_GAMES
 
     tg_user = await sync_to_async(_repo.get_by_telegram_id)(update.effective_user.id)
     try:
-        game = await sync_to_async(_register)(tg_user, text, name)
+        saved_now = await sync_to_async(_register_many)(tg_user, games, name)
     except (RegisterGameError, GameSetError) as exc:
         await update.message.reply_text(f"Erro: {exc}\n\nTente novamente:")
-        return ASK_NUMBERS
+        return ASK_GAMES
 
-    saved = context.user_data.get("register_saved", 0) + 1
+    saved = context.user_data.get("register_saved", 0) + saved_now
     context.user_data["register_saved"] = saved
-    nums = "  ".join(f"{n:02d}" for n in game.numbers)
     await update.message.reply_text(
-        f"Jogo #{game.pk} salvo em *{_md(name)}*.\n\n"
-        f"`{nums}`\n\n"
-        "Outro jogo neste conjunto? Digite de *15 a 20* dezenas, ou /pronto para encerrar.",
+        f"{saved_now} jogo(s) salvo(s) em *{_md(name)}*:\n{_summary(games)}\n\n"
+        "Envie mais jogos para este conjunto, ou /pronto para encerrar.",
         parse_mode="Markdown",
     )
-    return ASK_COUNT
+    return ASK_GAMES
 
 
 async def registrar_done(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:

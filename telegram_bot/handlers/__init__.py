@@ -6,10 +6,9 @@ from .latest_handler import latest_handler
 from .mygames_handler import mygames_handler
 from .register_handler import (
     registrar_cancel,
-    registrar_count,
     registrar_done,
+    registrar_games,
     registrar_name,
-    registrar_numbers,
     registrar_start,
 )
 from .start_handler import start_handler
@@ -30,8 +29,7 @@ __all__ = [
     "mygames_handler",
     "registrar_start",
     "registrar_name",
-    "registrar_count",
-    "registrar_numbers",
+    "registrar_games",
     "registrar_done",
     "registrar_cancel",
     "sync_handler",

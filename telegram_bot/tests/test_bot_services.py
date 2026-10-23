@@ -99,6 +99,45 @@ class TestRegisterGameService:
             RegisterGameService().execute(telegram_user, "1 1 3 4 5 6 7 8 9 10 11 12 13 14 15")
 
 
+GAME_15 = "01 02 03 04 05 06 07 08 09 10 11 12 13 14 15"
+GAME_16 = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16"
+
+
+class TestRegisterManyGames:
+    def test_parse_detects_size_per_line(self) -> None:
+        games = RegisterGameService().parse_games(f"{GAME_15}\n\n{GAME_16}\n")
+        assert [len(g) for g in games] == [15, 16]
+
+    def test_parse_accepts_mixed_separators_and_sorts(self) -> None:
+        games = RegisterGameService().parse_games("15-14-13-12-11-10-9-8-7-6-5-4-3-2-1")
+        assert games == [list(range(1, 16))]
+
+    def test_parse_reports_every_bad_line(self) -> None:
+        text = f"{GAME_15}\n1 2 3\n{GAME_15}\n1 1 3 4 5 6 7 8 9 10 11 12 13 14 15"
+        with pytest.raises(RegisterGameError) as exc:
+            RegisterGameService().parse_games(text)
+        message = str(exc.value)
+        assert "Linha 2:" in message and "(veio com 3)" in message
+        assert "Linha 4:" in message and "repetir" in message
+        assert "Linha 1" not in message
+
+    def test_parse_rejects_empty_text(self) -> None:
+        with pytest.raises(RegisterGameError, match="um jogo por linha"):
+            RegisterGameService().parse_games("  \n ")
+
+    def test_execute_many_saves_all_in_set(self, telegram_user) -> None:
+        from loterias.services import GameSetService
+
+        game_set = GameSetService().open(telegram_user.user, "firma")
+        games = RegisterGameService().parse_games(f"{GAME_15}\n{GAME_16}")
+        assert RegisterGameService().execute_many(telegram_user, games, game_set=game_set) == 2
+        assert Game.objects.filter(game_set=game_set).count() == 2
+
+    def test_execute_many_requires_link(self, telegram_user_no_link) -> None:
+        with pytest.raises(RegisterGameError, match="vincular"):
+            RegisterGameService().execute_many(telegram_user_no_link, [list(range(1, 16))])
+
+
 class TestBotSuggestionsService:
     def test_returns_formatted_strings(self) -> None:
         service = BotSuggestionsService()
