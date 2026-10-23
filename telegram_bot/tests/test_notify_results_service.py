@@ -68,12 +68,29 @@ class TestNotifyResultsService:
         assert "13 acertos" in msg
         assert "R$ 25,00" in msg
 
-    def test_build_message_no_prize(self, contest, game) -> None:
-        result = GameResult(game=game, contest=contest, hits=9, prize=Decimal("0"))
-        service = NotifyResultsService()
-        msg = service.build_message(contest, [(game, result)])
-        assert "9 acertos" in msg
+    def test_build_message_no_prize_is_one_line_summary(self, contest, game) -> None:
+        pairs = [
+            (game, GameResult(game=game, contest=contest, hits=9, prize=Decimal("0"))),
+            (game, GameResult(game=game, contest=contest, hits=10, prize=Decimal("0"))),
+        ]
+        msg = NotifyResultsService().build_message(contest, pairs)
+        assert "Nenhum dos seus 2 jogo(s) fez mais de 10 acertos" in msg
+        assert "Melhor resultado: 10 acertos" in msg
+        assert "Jogo #" not in msg
         assert "Total" not in msg
+
+    def test_build_message_lists_only_prize_games_best_first(self, contest, user) -> None:
+        low, mid, high = (Game(pk=pk, user=user, numbers=list(range(1, 16))) for pk in (1, 2, 3))
+        pairs = [
+            (low, GameResult(game=low, contest=contest, hits=10, prize=Decimal("0"))),
+            (mid, GameResult(game=mid, contest=contest, hits=11, prize=Decimal("7.00"))),
+            (high, GameResult(game=high, contest=contest, hits=13, prize=Decimal("35.00"))),
+        ]
+        msg = NotifyResultsService().build_message(contest, pairs)
+        assert "Jogo #1" not in msg
+        assert msg.index("Jogo #3") < msg.index("Jogo #2")
+        assert "Total: R$ 42,00" in msg
+        assert "1 outro(s) jogo(s) fizeram 10 acertos ou menos" in msg
 
     def test_build_message_shows_sorteio(self, contest, game) -> None:
         result = GameResult(game=game, contest=contest, hits=15, prize=Decimal("100.00"))

@@ -87,24 +87,37 @@ class NotifyResultsService:
             f"`{sorteio}`\n",
         ]
 
+        # Só os jogos premiados (11+ acertos) entram na lista, para a mensagem não poluir
+        winners = sorted(
+            (pair for pair in pairs if pair[1].hits >= _MIN_PRIZE_HITS),
+            key=lambda pair: pair[1].hits,
+            reverse=True,
+        )
+        if not winners:
+            best = max((result.hits for _, result in pairs), default=0)
+            lines.append(
+                f"Nenhum dos seus {len(pairs)} jogo(s) fez mais de {_MIN_PRIZE_HITS - 1} acertos. "
+                f"Melhor resultado: {best} acertos."
+            )
+            return "\n".join(lines)
+
         total_prize = Decimal("0")
-        for game, result in pairs:
+        for game, result in winners:
             emoji = _HIT_EMOJI.get(result.hits, "")
-            label = f"Jogo #{game.pk}"
-            if game.game_set_id:
-                safe_name = "".join(
-                    f"\\{ch}" if ch in "\\_*`[" else ch for ch in game.game_set.name
-                )
-                label += f" ({safe_name})"
-            if result.hits >= _MIN_PRIZE_HITS:
-                lines.append(
-                    f"{emoji} {label}: *{result.hits} acertos* — {_fmt_brl(result.prize)}"
-                )
-                total_prize += result.prize
-            else:
-                lines.append(f"{label}: {result.hits} acertos")
+            lines.append(
+                f"{emoji} {self._label(game)}: *{result.hits} acertos* — {_fmt_brl(result.prize)}"
+            )
+            total_prize += result.prize
 
-        if total_prize > 0:
-            lines.append(f"\n💰 *Total: {_fmt_brl(total_prize)}*")
-
+        lines.append(f"\n💰 *Total: {_fmt_brl(total_prize)}*")
+        others = len(pairs) - len(winners)
+        if others:
+            lines.append(f"_{others} outro(s) jogo(s) fizeram {_MIN_PRIZE_HITS - 1} acertos ou menos._")
         return "\n".join(lines)
+
+    def _label(self, game: Game) -> str:
+        label = f"Jogo #{game.pk}"
+        if game.game_set_id:
+            safe_name = "".join(f"\\{ch}" if ch in "\\_*`[" else ch for ch in game.game_set.name)
+            label += f" ({safe_name})"
+        return label
