@@ -17,7 +17,7 @@ GAME_PRICES: dict[int, str] = {
 VALID_GAME_SIZES: set[int] = set(GAME_PRICES.keys())
 
 # Horário do relatório diário de prêmios (horário de Brasília)
-DAILY_REPORT_TIME = time(3, 0, tzinfo=ZoneInfo("America/Sao_Paulo"))
+DAILY_REPORT_TIME = time(0, 0, tzinfo=ZoneInfo("America/Sao_Paulo"))
 
 # Comandos públicos do bot: fonte única para o menu "/" do Telegram, o /start e o /help
 BOT_COMMANDS: list[tuple[str, str]] = [
