@@ -3,27 +3,25 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from telegram_bot.repositories import TelegramUserRepository
+from telegram_bot.services import DailyReportService
 
 _repo = TelegramUserRepository()
 
 
 async def sync_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    message = update.effective_message
     tg_user = await sync_to_async(_repo.get_by_telegram_id)(update.effective_user.id)
 
     if tg_user is None or tg_user.user is None or not tg_user.user.is_staff:
-        await update.message.reply_text("Comando restrito a administradores.")
+        await message.reply_text("Comando restrito a administradores.")
         return
 
-    await update.message.reply_text("Verificando concursos novos...")
+    await message.reply_text("Verificando concursos novos...")
 
-    from loterias.services import ImportLotofacilService
+    # Mesmo fluxo do relatório diário: importa e já envia os resultados pendentes
+    sent = await DailyReportService().run(context.bot)
 
-    service = ImportLotofacilService()
-    latest_number, imported = await service.sync()
-
-    if imported == 0:
-        await update.message.reply_text(f"Banco já atualizado. Último concurso: #{latest_number}.")
+    if sent == 0:
+        await message.reply_text("Nenhum resultado novo para enviar.")
     else:
-        await update.message.reply_text(
-            f"{imported} concurso(s) importado(s). Último: #{latest_number}."
-        )
+        await message.reply_text(f"{sent} resultado(s) de concurso enviado(s).")

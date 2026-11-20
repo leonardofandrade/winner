@@ -28,7 +28,7 @@ def tg_user(db, user):
 def _update() -> MagicMock:
     update = MagicMock()
     update.effective_user.id = TELEGRAM_ID
-    update.message.reply_text = AsyncMock()
+    update.effective_message.reply_text = AsyncMock()
     return update
 
 
@@ -59,7 +59,7 @@ class TestMygamesHandler:
         update = _update()
         await mygames_handler(update, MagicMock())
 
-        chunks = [c.args[0] for c in update.message.reply_text.call_args_list]
+        chunks = [c.args[0] for c in update.effective_message.reply_text.call_args_list]
         assert len(chunks) > 1
         assert all(len(chunk) <= MESSAGE_LIMIT for chunk in chunks)
         text = "\n".join(chunks)

@@ -1,6 +1,6 @@
 """Constantes compartilhadas do bot."""
 
-from datetime import time
+from datetime import time, timedelta
 from zoneinfo import ZoneInfo
 
 # Preços oficiais da Lotofácil por quantidade de dezenas (base: 15 = R$ 3,50)
@@ -17,7 +17,14 @@ GAME_PRICES: dict[int, str] = {
 VALID_GAME_SIZES: set[int] = set(GAME_PRICES.keys())
 
 # Horário do relatório diário de prêmios (horário de Brasília)
-DAILY_REPORT_TIME = time(0, 0, tzinfo=ZoneInfo("America/Sao_Paulo"))
+BOT_TIMEZONE = ZoneInfo("America/Sao_Paulo")
+DAILY_REPORT_TIME = time(0, 0, tzinfo=BOT_TIMEZONE)
+
+# A Caixa às vezes leva horas para publicar o sorteio na API. Se à meia-noite o
+# concurso de ontem ainda não saiu, o relatório tenta de novo neste intervalo
+# (16 tentativas de 30 min = até as 8h).
+DAILY_REPORT_RETRY_INTERVAL = timedelta(minutes=30)
+DAILY_REPORT_MAX_RETRIES = 16
 
 # Comandos públicos do bot: fonte única para o menu "/" do Telegram, o /start e o /help
 BOT_COMMANDS: list[tuple[str, str]] = [

@@ -22,15 +22,17 @@ def _md(value: str) -> str:
 
 
 async def mygames_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    # effective_message cobre também comandos editados, em que update.message é None
+    message = update.effective_message
     tg_user = await sync_to_async(_repo.get_by_telegram_id)(update.effective_user.id)
 
     if tg_user is None:
-        await update.message.reply_text("Use /start primeiro para se registrar.")
+        await message.reply_text("Use /start primeiro para se registrar.")
         return
 
     games_qs = await sync_to_async(_service.execute)(tg_user)
     if games_qs is None:
-        await update.message.reply_text(
+        await message.reply_text(
             "Sua conta Telegram não está vinculada a uma conta Winner.\n"
             "Entre em contato com o administrador para vincular."
         )
@@ -38,7 +40,7 @@ async def mygames_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     games = await sync_to_async(list)(games_qs)
     if not games:
-        await update.message.reply_text("Você ainda não tem jogos cadastrados.\nUse /registrar para cadastrar.")
+        await message.reply_text("Você ainda não tem jogos cadastrados.\nUse /registrar para cadastrar.")
         return
 
     grouped: dict[str | None, list] = {}
@@ -72,4 +74,4 @@ async def mygames_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     # Com muitos jogos o texto passa do limite do Telegram: envia em partes
     for chunk in split_message("\n".join(lines)):
-        await update.message.reply_text(chunk, parse_mode="Markdown")
+        await message.reply_text(chunk, parse_mode="Markdown")
